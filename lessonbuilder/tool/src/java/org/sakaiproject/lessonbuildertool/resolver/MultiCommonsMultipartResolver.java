@@ -17,6 +17,8 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Created by neelam on 8/3/2015.
@@ -24,6 +26,7 @@ import java.util.Map;
  * Used this link to fix the problem : Reference : http://dhruba.name/2008/12/27/implementing-single-and-multiple-file-multipart-uploads-using-spring-25/
  */
 public class MultiCommonsMultipartResolver extends CommonsMultipartResolver {
+    private final Log log = LogFactory.getLog(MultiCommonsMultipartResolver.class);
     public MultiCommonsMultipartResolver(){
     }
     public MultiCommonsMultipartResolver(ServletContext servletContext) {
@@ -46,10 +49,8 @@ public class MultiCommonsMultipartResolver extends CommonsMultipartResolver {
                         value = fileItem.getString(partEncoding);
                     }
                     catch (UnsupportedEncodingException ex) {
-                        if (logger.isWarnEnabled()) {
-                            logger.warn("Could not decode multipart item '" + fileItem.getFieldName() +
-                                    "' with encoding '" + partEncoding + "': using platform default");
-                        }
+                        log.warn("Could not decode multipart item '" + fileItem.getFieldName() +
+                            "' with encoding '" + partEncoding + "': using platform default");
                         value = fileItem.getString();
                     }
                 }
@@ -72,11 +73,9 @@ public class MultiCommonsMultipartResolver extends CommonsMultipartResolver {
                 // multipart file field
                 CommonsMultipartFile file = new CommonsMultipartFile(fileItem);
                 multipartFiles.add(fileItem.getName(), file);
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Found multipart file [" + file.getName() + "] of size " + file.getSize() +
-                            " bytes with original filename [" + file.getOriginalFilename() + "], stored " +
-                            file.getStorageDescription());
-                }
+                log.debug("Found multipart file [" + file.getName() + "] of size " + file.getSize() +
+                    " bytes with original filename [" + file.getOriginalFilename() + "], stored " +
+                    file.getStorageDescription());
             }
         }
         return new MultipartParsingResult(multipartFiles, multipartParameters, multipartParameterContentTypes);

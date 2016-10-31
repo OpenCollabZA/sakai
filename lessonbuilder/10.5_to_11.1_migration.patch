@@ -1,0 +1,1035 @@
+diff --git a/lessonbuilder/api/pom.xml b/lessonbuilder/api/pom.xml
+index a079bf4..95843d4 100644
+--- a/lessonbuilder/api/pom.xml
++++ b/lessonbuilder/api/pom.xml
+@@ -28,5 +28,23 @@
+             <version>2.4</version>
+             <scope>provided</scope>
+         </dependency>
++        <dependency>
++            <groupId>org.sakaiproject.msgcntr</groupId>
++            <artifactId>messageforums-api</artifactId>
++            <version>11.1</version>
++            <type>jar</type>
++        </dependency>
++        <dependency>
++            <groupId>org.sakaiproject.assignment</groupId>
++            <artifactId>sakai-assignment-api</artifactId>
++            <version>10.1</version>
++            <type>jar</type>
++        </dependency>
++        <dependency>
++            <groupId>org.sakaiproject.samigo</groupId>
++            <artifactId>samigo-api</artifactId>
++            <version>10.1</version>
++            <type>jar</type>
++        </dependency>
+     </dependencies>
+ </project>
+diff --git a/lessonbuilder/tool/pom.xml b/lessonbuilder/tool/pom.xml
+index d6b4d48..c287862 100644
+--- a/lessonbuilder/tool/pom.xml
++++ b/lessonbuilder/tool/pom.xml
+@@ -206,6 +206,92 @@
+              <artifactId>opencsv</artifactId>
+              <version>2.3</version>
+         </dependency>
++        <!-- OC added docx4j dependency -->
++        <dependency>
++            <groupId>org.docx4j</groupId>
++            <artifactId>docx4j</artifactId>
++            <version>3.2.1</version>
++        </dependency>
++        <dependency>
++            <groupId>org.docx4j</groupId>
++            <artifactId>docx4j-ImportXHTML</artifactId>
++            <version>3.2.2</version>
++        </dependency>
++        <dependency>
++            <groupId>xalan</groupId>
++            <artifactId>xalan</artifactId>
++            <version>2.7.1</version>
++            <scope>compile</scope>
++        </dependency>
++        <dependency>
++            <groupId>xalan</groupId>
++            <artifactId>serializer</artifactId>
++            <version>2.7.1</version>
++        </dependency>
++        <dependency>
++            <groupId>net.sourceforge.htmlcleaner</groupId>
++            <artifactId>htmlcleaner</artifactId>
++            <version>2.8</version>
++        </dependency>
++        <dependency>
++            <groupId>coza.opencollab</groupId>
++            <artifactId>epub-creator</artifactId>
++            <version>1.0.1-SNAPSHOT</version>
++        </dependency>
++        <dependency>
++            <groupId>org.jsoup</groupId>
++            <artifactId>jsoup</artifactId>
++            <version>1.7.3</version>
++            <type>jar</type>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.xmlgraphics</groupId>
++            <artifactId>batik-transcoder</artifactId>
++            <version>1.8</version>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.xmlgraphics</groupId>
++            <artifactId>batik-dom</artifactId>
++            <version>1.8</version>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.xmlgraphics</groupId>
++            <artifactId>batik-util</artifactId>
++            <version>1.8</version>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.xmlgraphics</groupId>
++            <artifactId>batik-svg-dom</artifactId>
++            <version>1.8</version>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.xmlgraphics</groupId>
++            <artifactId>batik-codec</artifactId>
++            <version>1.8</version>
++        </dependency>
++        <dependency>
++            <groupId>commons-validator</groupId>
++            <artifactId>commons-validator</artifactId>
++            <version>1.4.0</version>
++            <type>jar</type>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.xmlgraphics</groupId>
++            <artifactId>fop</artifactId>
++            <version>2.0</version>
++            <type>jar</type>
++        </dependency>
++        <dependency>
++            <groupId>org.apache.xmlgraphics</groupId>
++            <artifactId>xmlgraphics-commons</artifactId>
++            <version>2.0</version>
++        </dependency>
++
++        <dependency>
++            <groupId>xml-apis</groupId>
++            <artifactId>xml-apis-ext</artifactId>
++            <version>1.3.04</version>
++        </dependency>
+     </dependencies>
+ 
+ 
+diff --git a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/resolver/MultiCommonsMultipartResolver.java b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/resolver/MultiCommonsMultipartResolver.java
+index 5d17168..3913cf45 100644
+--- a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/resolver/MultiCommonsMultipartResolver.java
++++ b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/resolver/MultiCommonsMultipartResolver.java
+@@ -46,10 +46,11 @@ public class MultiCommonsMultipartResolver extends CommonsMultipartResolver {
+                         value = fileItem.getString(partEncoding);
+                     }
+                     catch (UnsupportedEncodingException ex) {
+-                        if (logger.isWarnEnabled()) {
+-                            logger.warn("Could not decode multipart item '" + fileItem.getFieldName() +
+-                                    "' with encoding '" + partEncoding + "': using platform default");
+-                        }
++//                        if (logger.isWarnEnabled()) {
++//                            logger.warn("Could not decode multipart item '" + fileItem.getFieldName() +
++//                                    "' with encoding '" + partEncoding + "': using platform default");
++//                        }
++                        System.out.println("Could not decode multipart item '" + fileItem.getFieldName() + "' with encoding '" + partEncoding + "': using platform default");
+                         value = fileItem.getString();
+                     }
+                 }
+@@ -72,11 +73,12 @@ public class MultiCommonsMultipartResolver extends CommonsMultipartResolver {
+                 // multipart file field
+                 CommonsMultipartFile file = new CommonsMultipartFile(fileItem);
+                 multipartFiles.add(fileItem.getName(), file);
+-                if (logger.isDebugEnabled()) {
+-                    logger.debug("Found multipart file [" + file.getName() + "] of size " + file.getSize() +
+-                            " bytes with original filename [" + file.getOriginalFilename() + "], stored " +
+-                            file.getStorageDescription());
+-                }
++//                if (logger.isDebugEnabled()) {
++//                    logger.debug("Found multipart file [" + file.getName() + "] of size " + file.getSize() +
++//                            " bytes with original filename [" + file.getOriginalFilename() + "], stored " +
++//                            file.getStorageDescription());
++//                }
++                System.out.println("Found multipart file [" + file.getName() + "] of size " + file.getSize() + " bytes with original filename [" + file.getOriginalFilename() + "], stored " + file.getStorageDescription());
+             }
+         }
+         return new MultipartParsingResult(multipartFiles, multipartParameters, multipartParameterContentTypes);
+diff --git a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/ReportHandlerHook.java b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/ReportHandlerHook.java
+index 682824f..246766e 100644
+--- a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/ReportHandlerHook.java
++++ b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/ReportHandlerHook.java
+@@ -14,15 +14,36 @@
+ 
+ package org.sakaiproject.lessonbuildertool.tool.beans;
+ 
++import java.io.BufferedReader;
++import java.io.IOException;
++import java.io.OutputStream;
++import java.io.PrintStream;
++import java.io.PrintWriter;
++import java.util.ArrayList;
++import java.util.List;
++
++import javax.servlet.http.Cookie;
++import javax.servlet.http.HttpServletRequest;
+ import javax.servlet.http.HttpServletResponse;
+ 
+ import org.apache.commons.logging.Log;
+ import org.apache.commons.logging.LogFactory;
+ import org.sakaiproject.lessonbuildertool.tool.view.ExportCCViewParameters;
++import org.sakaiproject.lessonbuildertool.tool.view.ImportDocxViewParameters;
++import org.sakaiproject.lessonbuildertool.tool.view.ExportDocxViewParameters;
++import org.sakaiproject.lessonbuildertool.tool.view.ExportEpubViewParameters;
+ import org.sakaiproject.lessonbuildertool.ccexport.CCExport;
++import org.sakaiproject.lessonbuildertool.docxexport.DocxExport;
++import org.sakaiproject.lessonbuildertool.epubexport.EpubExport;
++import org.sakaiproject.tool.api.ToolSession;
++import org.sakaiproject.tool.cover.SessionManager;
+ import org.sakaiproject.tool.cover.ToolManager;
+ import org.sakaiproject.authz.cover.SecurityService;
+ import org.sakaiproject.lessonbuildertool.SimplePage;
++import org.sakaiproject.lessonbuildertool.docximport.DocxImport;
++import org.sakaiproject.lessonbuildertool.pdfimport.PdfImport;
++import org.sakaiproject.lessonbuildertool.tool.view.ImportPdfViewParameters;
++import org.sakaiproject.lessonbuildertool.util.ApplicationContextProvider;
+ 
+ import uk.org.ponder.rsf.viewstate.ViewParameters;
+ 
+@@ -65,6 +86,54 @@ public class ReportHandlerHook {
+ 	  ccExport.doExport(siteId, response, (ExportCCViewParameters)viewparams);
+ 
+           return true;
++      }else if(viewparams instanceof ExportEpubViewParameters){
++    	  String siteId = ToolManager.getCurrentPlacement().getContext();
++     	  String ref = "/site/" + siteId;
++    	  boolean ok = SecurityService.unlock(SimplePage.PERMISSION_LESSONBUILDER_UPDATE, ref);
++    	  if (!ok)
++    	      return false;
++
++          log.debug("Handing viewparams and response off to the reportExporter");
++    	  EpubExport epubExport = (EpubExport) ApplicationContextProvider.getApplicationContext().getBean("org.sakaiproject.lessonbuildertool.epubexport.EpubExport");
++          //EpubExport epubExport = new EpubExport();
++    	  epubExport.doExport(siteId, response, (ExportEpubViewParameters)viewparams);
++          return true;
++      }else if(viewparams instanceof ExportDocxViewParameters){
++    	  String siteId = ToolManager.getCurrentPlacement().getContext();
++     	  String ref = "/site/" + siteId;
++    	  boolean ok = SecurityService.unlock(SimplePage.PERMISSION_LESSONBUILDER_UPDATE, ref);
++    	  if (!ok)
++    	      return false;
++
++          log.debug("Handing viewparams and response off to the reportExporter");
++          log.debug("Export Docx");
++          DocxExport docxExport = (DocxExport) ApplicationContextProvider.getApplicationContext().getBean("org.sakaiproject.lessonbuildertool.docxexport.DocxExport");
++          docxExport.doExport(siteId, response, (ExportDocxViewParameters)viewparams);
++          return true;
++      }else if(viewparams instanceof ImportDocxViewParameters){
++    	  String siteId = ToolManager.getCurrentPlacement().getContext();
++     	  String ref = "/site/" + siteId;
++    	  boolean ok = SecurityService.unlock(SimplePage.PERMISSION_LESSONBUILDER_UPDATE, ref);
++    	  if (!ok)
++    	      return false;
++
++          log.debug("Handing viewparams and response off to the reportImporter");
++          log.debug("Import Docx");
++//          DocxImport docxImport = (DocxImport) ApplicationContextProvider.getApplicationContext().getBean("org.sakaiproject.lessonbuildertool.docximport.DocxImport");
++//          docxImport.doImport(siteId, response, (ImportDocxViewParameters)viewparams);
++          return true;
++      } else if(viewparams instanceof ImportPdfViewParameters){
++    	  String siteId = ToolManager.getCurrentPlacement().getContext();
++     	  String ref = "/site/" + siteId;
++    	  boolean ok = SecurityService.unlock(SimplePage.PERMISSION_LESSONBUILDER_UPDATE, ref);
++    	  if (!ok)
++    	      return false;
++
++          log.debug("Handing viewparams and response off to the reportImporter");
++          log.debug("Import Pdf");
++          PdfImport pdfImport = (PdfImport) ApplicationContextProvider.getApplicationContext().getBean("org.sakaiproject.lessonbuildertool.pdfimport.PdfImport");
++          pdfImport.doImport(siteId, response, (ImportPdfViewParameters)viewparams);
++          return true;
+       }
+       return false;
+    }
+diff --git a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/SimplePageBean.java b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/SimplePageBean.java
+index 13cb33a..22ee8e9 100644
+--- a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/SimplePageBean.java
++++ b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/beans/SimplePageBean.java
+@@ -94,6 +94,8 @@ import au.com.bytecode.opencsv.CSVParser;
+ import org.sakaiproject.portal.util.ToolUtils;
+ import org.sakaiproject.lti.api.LTIService;
+ import org.sakaiproject.basiclti.util.SakaiBLTIUtil;
++import org.sakaiproject.lessonbuildertool.docximport.DocxImport;
++import org.sakaiproject.lessonbuildertool.tool.view.ImportDocxViewParameters;
+ import org.tsugi.lti2.ContentItem;
+ 
+ /**
+@@ -7863,5 +7865,83 @@ public class SimplePageBean {
+ 	}
+ 	return result.toString();
+     }
++        
++    public void importDocx() {
++        if (!canEditPage()) {
++            return;
++        }
++        MultipartFile file = null;
++        if (multipartMap.size() > 0) {
++            // user specified a file, create it
++            file = multipartMap.values().iterator().next();
++        }
++        if (file != null) {
++            if (!uploadSizeOk(file)) {
++                return;
++            }
++            File docx = null;
++            File root = null;
++            try {
++                docx = File.createTempFile("docxloader", "file");
++                root = File.createTempFile("docxloader", "root");
++                if (root.exists()) {
++                    if (!root.delete()) {
++                        setErrMessage("unable to delete temp file for load");
++                        return;
++                    }
++                }
++                if (!root.mkdir()) {
++                    setErrMessage("unable to create temp directory for load");
++                    return;
++                }
++                BufferedInputStream bis = new BufferedInputStream(file.getInputStream());
++                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(docx));
++                byte[] buffer = new byte[8096];
++                int n = 0;
++                while ((n = bis.read(buffer, 0, 8096)) >= 0) {
++                    if (n > 0) {
++                        bos.write(buffer, 0, n);
++                    }
++                }
++                bis.close();
++                bos.close();
++                DocxImport di = new DocxImport();
++                di.setContentHostingService(contentHostingService);
++                di.setMessageLocator(messageLocator);
++                ImportDocxViewParameters idvp = new ImportDocxViewParameters(ShowPageProducer.VIEW_ID);
++                idvp.setFileName(file.getName());
++                idvp.setOriginalFileName(file.getOriginalFilename());
++                di.doImport(docx, httpServletResponse, idvp, this, simplePageToolDao);
++            } catch (Exception e) {
++                setErrKey("simplepage.cc-error", "");
++            } finally {
++                if (docx != null) {
++                    try {
++                        deleteRecursive(docx);
++                    } catch (Exception e) {
++                        log.error("Delete DOCX: Unable to delete temp files created during this step" , e);
++                    }
++                }
++                try {
++                    deleteRecursive(root);
++                } catch (Exception e) {
++                    log.error("Delete Root: Unable to delete temp files created during this step" , e);
++                }
++            }
++        }
++        GeneralViewParameters view = new GeneralViewParameters(ShowPageProducer.VIEW_ID);
++    }
++    
++    public void exportEpub(){
++		GeneralViewParameters view = new GeneralViewParameters(ShowPageProducer.VIEW_ID);
++	}
++	
++    public void exportDocx(){
++            GeneralViewParameters view = new GeneralViewParameters(ShowPageProducer.VIEW_ID);
++    }
++
++    public void exportError(){
++            GeneralViewParameters view = new GeneralViewParameters(ShowPageProducer.VIEW_ID);
++    }
+ 
+ }
+diff --git a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/producers/ShowPageProducer.java b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/producers/ShowPageProducer.java
+index caf15df..d4e36ad 100644
+--- a/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/producers/ShowPageProducer.java
++++ b/lessonbuilder/tool/src/java/org/sakaiproject/lessonbuildertool/tool/producers/ShowPageProducer.java
+@@ -102,6 +102,8 @@ import org.sakaiproject.lessonbuildertool.tool.view.GeneralViewParameters;
+ import org.sakaiproject.lessonbuildertool.tool.view.QuestionGradingPaneViewParameters;
+ import org.sakaiproject.lessonbuildertool.tool.view.ExportCCViewParameters;
+ import org.sakaiproject.lessonbuildertool.service.LessonBuilderAccessService;
++import org.sakaiproject.lessonbuildertool.tool.view.ExportDocxViewParameters;
++import org.sakaiproject.lessonbuildertool.tool.view.ExportEpubViewParameters;
+ import org.sakaiproject.authz.api.AuthzGroup;
+ import org.sakaiproject.memory.api.Cache;
+ import org.sakaiproject.memory.api.MemoryService;
+@@ -155,6 +157,8 @@ import uk.org.ponder.rsf.viewstate.SimpleViewParameters;
+ import uk.org.ponder.rsf.viewstate.ViewParameters;
+ import uk.org.ponder.rsf.viewstate.ViewParamsReporter;
+ import org.apache.commons.lang.StringEscapeUtils;
++import org.sakaiproject.lessonbuildertool.tool.view.ImportDocxViewParameters;
++import org.sakaiproject.lessonbuildertool.tool.view.ImportPdfViewParameters;
+ 
+ /**
+  * This produces the primary view of the page. It also handles the editing of
+@@ -752,7 +756,12 @@ public class ShowPageProducer implements ViewComponentProducer, DefaultView, Nav
+ 				createToolBarLink(PermissionsHelperProducer.VIEW_ID, tofill, "permissions", "simplepage.permissions", currentPage, "simplepage.permissions.tooltip");
+ 				UIOutput.make(tofill, "import-cc").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.import_cc.tooltip")));
+ 				UIOutput.make(tofill, "export-cc").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.export_cc.tooltip")));
+-
++                                // OC Adding two additional export options
++                                UIOutput.make(tofill, "import-docx").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.import_docx.tooltip")));
++                                UIOutput.make(tofill, "import-pdf").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.import_pdf.tooltip")));
++                                UIOutput.make(tofill, "export-epub").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.export_epub.tooltip")));
++                                UIOutput.make(tofill, "export-docx").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.export_docx.tooltip")));
++                                UIOutput.make(tofill, "export-error").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.export_docx.tooltip")));
+ 				// Check to see if we have tools registered for external import
+ 				List<Map<String, Object>> toolsFileItem = simplePageBean.getToolsFileItem();
+ 				if ( toolsFileItem.size() > 0 ) {
+@@ -3033,6 +3042,11 @@ public class ShowPageProducer implements ViewComponentProducer, DefaultView, Nav
+ 		createRemovePageDialog(tofill, currentPage, pageItem);
+ 		createImportCcDialog(tofill);
+ 		createExportCcDialog(tofill);
++                // OC addition of additional Dialogs
++                createImportPdfDialog(tofill,currentPage);
++                createImportDocxDialog(tofill,currentPage);
++                createExportEpubDialog(tofill,currentPage);
++                createExportDocxDialog(tofill,currentPage);
+ 		createYoutubeDialog(tofill, currentPage);
+ 		createMovieDialog(tofill, currentPage);
+ 		createCommentsDialog(tofill);
+@@ -3967,6 +3981,78 @@ public class ShowPageProducer implements ViewComponentProducer, DefaultView, Nav
+ 
+ 	}
+ 
++        /**
++         * Create the RSF form for the Epub export dialog
++         * @param tofill
++         */
++        private void createExportEpubDialog(UIContainer tofill,SimplePage page) {
++            UIOutput.make(tofill, "export-epub-dialog").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.export-epub-title")));
++
++            UIForm form = UIForm.make(tofill, "export-epub-form");
++            UICommand.make(form, "export-epub-ok", messageLocator.getMessage("simplepage.export-epub-ok"), null);
++
++            ExportEpubViewParameters view = new ExportEpubViewParameters("exportEpub");
++            view.setPageId(page.getPageId());
++            view.setUrl(myUrl());
++            UIInternalLink.make(form, "export-epub-link", "export epub link", view);                
++        }  
++        
++        /**
++         * Create the RSF form for the PDF import dialog
++         *
++         * @param tofill
++         */
++        private void createImportPdfDialog(UIContainer tofill, SimplePage page) {
++            UIOutput.make(tofill, "import-pdf-dialog").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.import-pdf-title")));
++
++            UIForm form = UIForm.make(tofill, "import-pdf-form");
++            UICommand.make(form, "import-pdf-ok", messageLocator.getMessage("simplepage.import-pdf-ok"), null);
++
++            ImportPdfViewParameters view = new ImportPdfViewParameters("importPdf");
++            view.setPageId(page.getPageId());
++            view.setUrl(myUrl());
++            UIInternalLink.make(form, "import-pdf-link", "import pdf link", view);
++        }
++        
++        
++        
++        /**
++         * Create the RSF form for the Docx export dialog
++         *
++         * @param tofill
++         */
++        private void createImportDocxDialog(UIContainer tofill, SimplePage page) {
++            UIOutput.make(tofill, "import-docx-dialog").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.import_docx-title")));
++
++            UIForm form = UIForm.make(tofill, "import-docx-form");
++            // UICommand.make(form, "import-docx-ok", messageLocator.getMessage("simplepage.import-docx-ok"), null);
++
++            UICommand.make(form, "import-docx-submit", messageLocator.getMessage("simplepage.save_message"), "#{simplePageBean.importDocx}");
++            UICommand.make(form, "mm-cancel", messageLocator.getMessage("simplepage.cancel"), null);
++
++            ImportDocxViewParameters view = new ImportDocxViewParameters("importDocx");
++            view.setPageId(page.getPageId());
++            view.setUrl(myUrl());
++            UIInternalLink.make(form, "import-docx-link", "import docx link", view);
++        }
++
++        /**
++         * Create the RSF form for the DocX export dialog
++         * @param tofill
++         */
++        private void createExportDocxDialog(UIContainer tofill, SimplePage page) {
++            UIOutput.make(tofill, "export-docx-dialog").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.export-docx-title")));
++
++            UIForm form = UIForm.make(tofill, "export-docx-form");
++
++            ExportDocxViewParameters view = new ExportDocxViewParameters("exportDocx");
++            view.setExportDocx(true);
++            view.setToolId(httpServletRequest.getQueryString());
++            view.setPageId(page.getPageId());
++            view.setUrl(myUrl());
++            UIInternalLink.make(form, "export-docx-link", "export docx link", view);
++        }
++        
+ 	private void createEditMultimediaDialog(UIContainer tofill, SimplePage currentPage) {
+ 		UIOutput.make(tofill, "edit-multimedia-dialog").decorate(new UIFreeAttributeDecorator("title", messageLocator.getMessage("simplepage.editMultimedia")));
+ 
+diff --git a/lessonbuilder/tool/src/resources/messages.properties b/lessonbuilder/tool/src/resources/messages.properties
+index 254ebe7..144e9d0 100644
+--- a/lessonbuilder/tool/src/resources/messages.properties
++++ b/lessonbuilder/tool/src/resources/messages.properties
+@@ -266,6 +266,83 @@ simplepage.cc_epub3=EPUB 3
+ simplepage.cc_ext_assignment=Assignment (extended definition)
+ simplepage.cc-has-badtypes=This cartridge contains resources of types with no specific support in this system. They will be treated as ordinary files: {}
+ 
++simplepage.import_pdf=Import PDF to create Lesson
++simplepage.import_pdf.tooltip=Import the PDF, create the Lesson
++simplepage.import-pdf-title=Import .pdf file
++simplepage.importpdf-descrip=Import .pdf to create the Lesson.
++simplepage.import-pdf-ok=OK
++
++simplepage.pdf.error.header=Errors have occurred while creating the file. Please corrected the errors listed below.
++simplepage.pdf.error.exporting=Error exporting the lesson to pdf format
++simplepage.pdf.error.creating.new.image=Error creating a new image 
++simplepage.pdf.error.url=Unable to properly URL encode the link address
++simplepage.pdf.error.hyperlink=Pdf error creating a hyperlink 
++simplepage.pdf.error.creating.assignment=Error creating Assignment export for pdf
++simplepage.pdf.error.creating.assessment=Error creating Assessment export for pdf
++simplepage.pdf.error.creating.forum=Error creating Forum export for pdf
++simplepage.pdf.error.creating.question=Error creating Question export for pdf
++simplepage.pdf.error.creating.url=Error retrieving URL for pdf export
++simplepage.pdf.error.creating.resource=Error creating Resource export for pdf
++simplepage.pdf.error.processing.text=Error processing Textual data for pdf
++
++
++
++simplepage.import_docx=Import MS Word to create Lesson
++simplepage.import_docx.tooltip=Import the docx, create the Lesson
++simplepage.import_docx-title=Import .docx file
++simplepage.importdocx-descrip=Import .docx to create the Lesson.
++simplepage.import_docx_file=Import .docx
++simplepage.import-docx-ok=OK
++simplepage.docx.error.importing=Error experienced while importing the DOCX file
++
++
++simplepage.export_epub=Export for offline reader
++simplepage.export_epub.tooltip=Export the Lessons content to an EPUB3 resource.
++simplepage.export-epub-title=Export EPUB3 file
++simplepage.export-epub-ok=OK
++simplepage.exportepub-descrip=Export contents of site in EPUB3 format.
++
++simplepage.export_docx=Export to MS Word
++simplepage.export_docx.tooltip=Export the Lessons content to an docx resource.
++simplepage.export-docx-title=Export .docx file
++simplepage.exportdocx-descrip=Export contents of site in docx format.
++simplepage.docx.error.header=Errors have occurred while creating the file. Please corrected the errors listed below.
++simplepage.docx.error.exporting=Error exporting the lesson to DOCX format
++simplepage.docx.error.creating.new.image=Error creating a new image 
++simplepage.docx.error.url=Unable to properly URL encode the link address
++simplepage.docx.error.hyperlink=Docx error creating a hyperlink 
++simplepage.docx.error.creating.assignment=Error creating Assignment export for Docx
++simplepage.docx.error.creating.assessment=Error creating Assessment export for Docx
++simplepage.docx.error.creating.forum=Error creating Forum export for Docx
++simplepage.docx.error.creating.question=Error creating Question export for Docx
++simplepage.docx.error.creating.url=Error retrieving URL for Docx export
++simplepage.docx.error.creating.resource=Error creating Resource export for Docx
++simplepage.docx.error.processing.text=Error processing Textual data for Docx
++
++
++
++simplepage.epub.error.header=The file has been created with some errors. Please see exported document for more information.
++simplepage.epub.error.creating.assignment=Error creating Assignment export for Epub
++simplepage.epub.error.creating.assessment=Error creating Assessment export for Epub
++simplepage.epub.error.creating.forum=Error creating Forum export for Epub
++simplepage.epub.error.creating.url=Error retrieving URL for Epub export
++simplepage.epub.error.creating.resource=Error creating Resource export for Epub
++simplepage.epub.error.attaching.css=Error attaching the sites CSS styling for Epub 
++
++export-epub-current=export-epub-current
++simplepage.exportepub-current=test
++simplepage.export-epub-submit=Export Epub File
++simplepage.export-epub-cancel=Cancel
++simplepage.export-docx-submit=Export This Lesson to DOCX
++simplepage.export-docx-cancel=Cancel
++export-docx-cancel=Cancel
++export-epub-form=export-epub-form
++
++simplepage.export_error=Export Error(s) 
++simplepage.export_error.tooltip=Error(s) have occurred during the export process.
++simplepage.export-error-title=Errors during export 
++simplepage.exporterror-descrip=Error(s) have occurred during the export process.
++
+ simplepage.export_cc=Export CC
+ simplepage.export_cc.tooltip=Create file in IMS Common Cartridge format. This may be used to save the contents of a course for later use. Most other Course Management Systems can read Common Cartridge files. The file will contain all content from Lessons, Assignments, Forum or Topics, Quizzes, and Question Pools. However not all details will be saved.
+ simplepage.export-cc-title=Export IMS Common Cartridge file
+diff --git a/lessonbuilder/tool/src/webapp/WEB-INF/applicationContext.xml b/lessonbuilder/tool/src/webapp/WEB-INF/applicationContext.xml
+index 9ffe417..675163e 100644
+--- a/lessonbuilder/tool/src/webapp/WEB-INF/applicationContext.xml
++++ b/lessonbuilder/tool/src/webapp/WEB-INF/applicationContext.xml
+@@ -3,6 +3,8 @@
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+ 
++    <bean id="applicationContextProvder" class="org.sakaiproject.lessonbuildertool.util.ApplicationContextProvider"/>
++    
+    <!-- Use the Sakai session factory, pre-configured, instead of one local to TaskList
+         we are adding our HBM files to the Sakai session factory instead of creating
+         our own copy of it -->
+@@ -87,6 +89,10 @@ simplePageBean.hasReleaseDate,
+ simplePageBean.height,
+ simplePageBean.hidePage,
+ simplePageBean.importCc,
++simplePageBean.importDocx,
++simplePageBean.exportEpub,
++simplePageBean.exportDocx,
++simplePageBean.exportError,
+ simplePageBean.importtop,
+ simplePageBean.isCaption,
+ simplePageBean.isMultimedia,
+@@ -307,6 +313,14 @@ simplePageBean.peerEvalAllowSelfGrade
+     	</constructor-arg>
+     	</bean>
+ 
++        <bean id="org.sakaiproject.lessonbuildertool.service.DataExportService"
++	      class="org.sakaiproject.lessonbuildertool.service.DataExportServiceImpl">
++            <property name="contentHostingService"><ref bean="org.sakaiproject.content.api.ContentHostingService"/></property>
++            <property name="simplePageToolDao" ref="org.sakaiproject.lessonbuildertool.model.SimplePageToolDao" />
++            <property name="siteService" ref="org.sakaiproject.site.api.SiteService"/>
++            <property name="publishedAssessmentFacadeQueries"><ref bean="PublishedAssessmentFacadeQueries" /></property>
++	</bean>
++
+  	<bean id="org.sakaiproject.lessonbuildertool.ccexport.CCExport"
+ 	      class="org.sakaiproject.lessonbuildertool.ccexport.CCExport">
+ 	  <property name="contentHostingService"><ref bean="org.sakaiproject.content.api.ContentHostingService"/></property>
+@@ -317,7 +331,46 @@ simplePageBean.peerEvalAllowSelfGrade
+ 	  <property name="messageLocator" ref="messageLocator"/>
+ 	  <property name="simplePageToolDao" ref="org.sakaiproject.lessonbuildertool.model.SimplePageToolDao" />
+ 	</bean>
++        
++        <bean id="org.sakaiproject.lessonbuildertool.docximport.DocxImport"
++            class="org.sakaiproject.lessonbuildertool.docximport.DocxImport">
++	</bean>
++        
++ 	<bean id="org.sakaiproject.lessonbuildertool.epubexport.EpubExport"
++            class="org.sakaiproject.lessonbuildertool.epubexport.EpubExport">
++            <property name="contentHostingService"><ref bean="org.sakaiproject.content.api.ContentHostingService"/></property>
++            <property name="dataExportService" ref="org.sakaiproject.lessonbuildertool.service.DataExportService" />
++            <property name="htmlCleaner" ref="org.sakaiproject.lessonbuildertool.util.HtmlCleanerUtil"/>
++            <property name="exportHelper" ref="org.sakaiproject.lessonbuildertool.util.ExportHelper"/>
++	    <property name="messageLocator" ref="messageLocator"/>
++	</bean>
++	
++ 	<bean id="org.sakaiproject.lessonbuildertool.docxexport.DocxExport"
++            class="org.sakaiproject.lessonbuildertool.docxexport.DocxExport">
++            <property name="dataExportService" ref="org.sakaiproject.lessonbuildertool.service.DataExportService" />
++            <property name="messageLocator" ref="messageLocator"/>
++            <property name="htmlCleaner" ref="org.sakaiproject.lessonbuildertool.util.HtmlCleanerUtil"/>
++            <property name="exportHelper" ref="org.sakaiproject.lessonbuildertool.util.ExportHelper"/>
++            <property name="xHTMLImageHandler"><ref bean="org.docx4j.convert.in.xhtml.XHTMLImageHandler"/></property>
++	</bean>
+ 
++ 	<bean id="org.docx4j.convert.in.xhtml.XHTMLImageHandler"
++            class="org.sakaiproject.lessonbuildertool.util.XHTMLImageHandlerSakai">
++            <property name="serverConfigurationService" ref="org.sakaiproject.component.api.ServerConfigurationService"/>
++            <property name="dataExportService" ref="org.sakaiproject.lessonbuildertool.service.DataExportService" />
++	</bean>
++    
++ 	<bean id="org.sakaiproject.lessonbuildertool.util.HtmlCleanerUtil"
++            class="org.sakaiproject.lessonbuildertool.util.HtmlCleanerUtil">
++            <property name="dataExportService" ref="org.sakaiproject.lessonbuildertool.service.DataExportService" />
++            <property name="serverConfigurationService" ref="org.sakaiproject.component.api.ServerConfigurationService"/>
++	</bean>   
++	
++ 	<bean id="org.sakaiproject.lessonbuildertool.util.ExportHelper"
++	    class="org.sakaiproject.lessonbuildertool.util.ExportHelper">
++            <property name="messageLocator" ref="messageLocator"/>
++	</bean>   
++        
+  	<bean id="org.sakaiproject.lessonbuildertool.ccexport.SamigoExport"
+ 	      class="org.sakaiproject.lessonbuildertool.ccexport.SamigoExport"
+               init-method="init"
+@@ -362,10 +415,24 @@ simplePageBean.peerEvalAllowSelfGrade
+ 	  <property name="messageLocator" ref="messageLocator"/>
+ 	  <property name="simplePageToolDao" ref="org.sakaiproject.lessonbuildertool.model.SimplePageToolDao" />
+ 	</bean>
++        
++	<bean parent="viewParamsRegistrarParent" id="importDocx" >
++            <property name="viewID" value="importDocx" />
++            <property name="viewParamsClass" value="org.sakaiproject.lessonbuildertool.tool.view.ImportDocxViewParameters" />
++	</bean>
++        
++	<bean parent="viewParamsRegistrarParent" id="exportDocx" >
++            <property name="viewID" value="exportDocx" />
++            <property name="viewParamsClass" value="org.sakaiproject.lessonbuildertool.tool.view.ExportDocxViewParameters" />
++	</bean>
+ 
++	<bean parent="viewParamsRegistrarParent" id="exportEpub">
++            <property name="viewID" value="exportEpub" />
++            <property name="viewParamsClass" value="org.sakaiproject.lessonbuildertool.tool.view.ExportEpubViewParameters" />
++	</bean>
+ 	<bean parent="viewParamsRegistrarParent">
+-          <property name="viewID" value="exportCc" />
+-          <property name="viewParamsClass"
++            <property name="viewID" value="exportCc" />
++            <property name="viewParamsClass"
+ 		    value="org.sakaiproject.lessonbuildertool.tool.view.ExportCCViewParameters" />
+ 	</bean>
+ 	
+diff --git a/lessonbuilder/tool/src/webapp/js/show-page.js b/lessonbuilder/tool/src/webapp/js/show-page.js
+index e76dcfc..1926ce6 100644
+--- a/lessonbuilder/tool/src/webapp/js/show-page.js
++++ b/lessonbuilder/tool/src/webapp/js/show-page.js
+@@ -185,6 +185,38 @@ $(document).ready(function() {
+ 			draggable: false
+ 		});
+ 
++                $('#import-docx-dialog').dialog({
++                    autoOpen: false,
++                    width: 600,
++                    modal: false,
++                    resizable: false,
++                    draggable: false
++		});
++                
++                $('#import-pdf-dialog').dialog({
++                    autoOpen: false,
++                    width: 600,
++                    modal: false,
++                    resizable: false,
++                    draggable: false
++		});
++            
++                $('#export-epub-dialog').dialog({
++                    autoOpen: false,
++                    width: 600,
++                    modal: false,
++                    resizable: false,
++                    draggable: false
++		});
++                
++                $('#export-docx-dialog').dialog({
++                    autoOpen: false,
++                    width: 600,
++                    modal: false,
++                    resizable: false,
++                    draggable: false
++		});
++        
+ 		$('#comments-dialog').dialog({
+ 			autoOpen: false,
+ 			width: modalDialogWidth(),
+@@ -248,7 +280,8 @@ $(document).ready(function() {
+ 		$(window).resize(function() {
+ 			var modalDialogList = ['#subpage-dialog', '#edit-item-dialog', '#edit-multimedia-dialog',
+ 			'#add-multimedia-dialog', '#edit-title-dialog', '#new-page-dialog', '#remove-page-dialog',
+-			'#youtube-dialog', '#movie-dialog', '#import-cc-dialog', '#export-cc-dialog',
++			'#youtube-dialog', '#movie-dialog', '#import-cc-dialog', '#export-cc-dialog', '#import-docx-dialog', 
++                        '#export-epub-dialog', '#export-docx-dialog',
+ 		        '#comments-dialog', '#student-dialog', '#question-dialog', '#delete-confirm'];
+ 			for (var i = 0; i < modalDialogList.length; i++) {
+ 				$(modalDialogList[i]).dialog("option", "width", modalDialogWidth());
+@@ -376,6 +409,100 @@ $(document).ready(function() {
+ 			closeExportCcDialog();
+ 			return false;
+ 		    });
++                
++                $('#import-docx').click(function(){
++                    oldloc = $(".dropdown a");
++                    closeDropdowns();
++                    $('#import-docx-dialog').dialog('open');
++                    setupdialog($('#import-docx-dialog'));
++                    return false;
++                });
++        
++                $("#import-docx-submit").on("click",function() {
++                    importDocx();
++                });
++        
++                $('#import-pdf').click(function(){
++                    closeDropdowns();
++                    var position =  $(this).position();
++                    $("#import-pdf-dialog").dialog("option", "position", [position.left, position.top]);
++                    oldloc = $(".dropdown a");
++                    $('#import-pdf-dialog').dialog('open');
++                    $('#import-pdf-message').hide();
++                    $('#import-pdf-resource').hide();
++                    $('#import-pdf-ok').hide();      
++                    $('#importPdfProgressbar').show();
++                    checksize($('#import-pdf-dialog'));
++                    importPdf();
++                    var pdfLink = $("#import-pdf-link").attr("href");
++                    $.ajax({
++                        type: "GET", 
++                        url: pdfLink,
++                        success: function(data,textStatus,resp){
++                            var obj = $.parseJSON(resp.responseText);
++                            $('#import-pdf-message').show();
++                            $('#import-pdf-resource').show();
++                            $('#import-pdf-ok').show();
++                            if(obj.errorMessage){
++                                $('#import-pdf-message').text(obj.errorMessage);
++                                $('#import-pdf-message').parent().append("<div>"+obj.errorReason+"</div>");
++                            }else{
++                                $('#import-pdf-resource').text(data.docName);
++                                $('#import-pdf-resource').attr("href", data.docURL);
++                            }
++                            $('#importPdfProgressbar').hide();
++                        }
++                      });
++                    return false;
++                });
++                
++                $('#export-epub').click(function(){
++                    oldloc = $(".dropdown a");
++                    closeDropdowns();
++                    $('#export-epub-dialog').dialog('open');
++                    setupdialog($('#export-epub-dialog'));
++                    exportToEpub();
++                    var epubLink = $("#export-epub-link").attr("href");
++                    $.ajax({
++                        type: "GET", 
++                        url: epubLink,
++                        success: function(data,textStatus,resp){
++                            var obj = $.parseJSON(resp.responseText);
++                            $('#export-epub-message').show();
++                            $('#export-epub-resource').show();
++                            $('#export-epub-ok').show();
++                            if(obj.errorMessage){
++                                $('#export-epub-message').text(obj.errorMessage);
++                                $('#export-epub-message').parent().append("<div>"+obj.errorReason+"</div>");
++                            }else{
++                                $('#export-epub-resource').text(data.docName);
++                                $('#export-epub-resource').attr("href", data.docURL);
++                            }
++                            $('#epubProgressbar').hide();
++                        }
++                      });
++                    return false;
++		});
++                
++                $('#export-docx').click(function(){
++                    oldloc = $(".dropdown a");
++                    closeDropdowns();
++                    $('#export-docx-dialog').dialog('open');
++                    setupdialog($('#export-docx-dialog'));
++                    $.removeCookie('fileDownloadToken', { path: '/' });
++                    oldloc = $(".dropdown a");
++                    exportToDocx();
++                    $("#export-docx-link").get(0).click();
++                    fileDownloadCheckTimer = window.setInterval(function() {
++                        var cookieValue = $.cookie('fileDownloadToken');
++                        if (cookieValue === "closeDocXDialog") {
++                            window.clearInterval(fileDownloadCheckTimer);
++                            $.removeCookie('fileDownloadToken', { path: '/' });
++                            location.reload();
++                        }
++                    }, 1000);
++                    return false;
++		});  
+ 
+ 		$('#import-cc-submit').click(function() {
+ 			// prevent double clicks
+@@ -386,10 +513,10 @@ $(document).ready(function() {
+ 			return true;
+ 	    	});
+ 
+-	    // This code must be read together with the SimplePageItem.MULTIMEDIA
+-	    // display code in ShowPageProducer.java (To find it search for
+-	    // multimediaDisplayType) and with the code in SimplePageBean that
+-	    // handles the submit from this dialog, addMultimedia.
++                // This code must be read together with the SimplePageItem.MULTIMEDIA
++                // display code in ShowPageProducer.java (To find it search for
++                // multimediaDisplayType) and with the code in SimplePageBean that
++                // handles the submit from this dialog, addMultimedia.
+ 
+ 
+ 		$('#mm-add-item').click(function() {
+@@ -1903,7 +2030,9 @@ $(document).ready(function() {
+ 				$('#youtube-dialog').dialog('isOpen') ||
+ 				$('#movie-dialog').dialog('isOpen') ||
+ 				$('#import-cc-dialog').dialog('isOpen') ||
+-				$('#export-cc-dialog').dialog('isOpen') ||
++				$('#import-docx-dialog').dialog('isOpen') ||
++                                $('#export-epub-dialog').dialog('isOpen') ||
++                                $('#export-docx-dialog').dialog('isOpen') ||
+ 				$('#comments-dialog').dialog('isOpen') ||
+ 				$('#column-dialog').dialog('isOpen') ||
+ 			        $('#student-dialog').dialog('isOpen') ||
+@@ -2318,6 +2447,27 @@ function closeExportCcDialog() {
+ 	oldloc.focus();
+ }
+ 
++function closeExportEpubDialog() {
++	$('#export-epub-dialog').dialog('close');
++	oldloc.focus();
++}
++
++function closeImportDocxDialog() {
++	$('#import-docx-dialog').dialog('close');
++	oldloc.focus();
++}
++
++function closeImportPdfDialog() {
++	$('#import-pdf-dialog').dialog('close');
++	oldloc.focus();
++}
++
++function closeExportDocxDialog() {
++        $('#export-docx-dialog').dialog('close');
++	oldloc.focus();
++}
++
++
+ function closeRemovePageDialog() {
+ 	$('#remove-page-dialog').dialog('close');
+ 	oldloc.focus();
+@@ -3005,3 +3155,53 @@ function fixupHeights() {
+ 	});
+ };
+ 
++   
++/**
++ * Export to epub function. 
++ * Displays the progress bar and populates the value.
++ */
++function exportToEpub(){
++    $( "#epubProgressbar" ).progressbar({
++             value: false
++    });
++}
++
++/**
++ * Import to Docx function. 
++ * Displays the progress bar and populates the value.
++ */
++function importDocx(){
++    $( "#importDocxProgressbar" ).progressbar({
++        value: false
++    });
++    $('#importDocxProgressbar').show();
++    $('#docx-import-controls').hide();
++}
++
++/**
++ * Import to PDF function. 
++ * Displays the progress bar and populates the value.
++ */
++function importPdf(){
++    $( "#importPdfProgressbar" ).progressbar({
++        value: false
++    });
++}
++
++/**
++ * Export to DocX function. 
++ * Displays the progress bar and populates the value.
++ */
++function exportToDocx(){
++    $( "#docxProgressbar" ).progressbar({
++             value: false
++    });    
++}
++
++/**
++ * Close the ExportDocxDialog
++ */
++function closeExportDocxDialog() {
++    $('#export-docx-dialog').dialog('close');
++    oldloc.focus();
++}
+\ No newline at end of file
+diff --git a/lessonbuilder/tool/src/webapp/templates/ShowPage.html b/lessonbuilder/tool/src/webapp/templates/ShowPage.html
+index 049c667..468c7c3 100644
+--- a/lessonbuilder/tool/src/webapp/templates/ShowPage.html
++++ b/lessonbuilder/tool/src/webapp/templates/ShowPage.html
+@@ -59,6 +59,7 @@
+  <script type="text/javascript" src="$context/js/hoverIntent.js"></script>
+  <script type="text/javascript" src="$context/js/show-page.js"></script>
+  <script type="text/javascript" src="$context/js/gradingAjax.js"></script>
++ <script type="text/javascript" src="$context/js/jquery.cookie.js"></script>
+  <link rel="stylesheet" rsf:id="customCSS" type="text/css" />
+ 
+  <a href="#" rsf:id="redirect-link" id="redirect-link"></a>
+@@ -324,6 +325,21 @@
+                       <a href="#" role="menuitem" rsf:id="export-cc" id="export-cc"><span rsf:id="msg=simplepage.export_cc"></span></a>
+                       <!-- just a message, so will display when it should not-->
+                     </li>
++                    <li>
++                      <a href="#" role="menuitem" rsf:id="import-docx" id="import-docx"><span rsf:id="msg=simplepage.import_docx"></span></a>
++                      <!-- just a message, so will display when it should not-->
++                      <div rsf:id="msg=simplepage.importdocx-descrip"></div>
++                    </li> 
++                    <li>
++                      <a href="#" role="menuitem" rsf:id="export-epub" id="export-epub"><span rsf:id="msg=simplepage.export_epub"></span></a>
++                      <!-- just a message, so will display when it should not-->
++                      <div rsf:id="msg=simplepage.exportepub-descrip"></div>
++                    </li> 
++                    <li>
++                      <a href="#" role="menuitem" rsf:id="export-docx" id="export-docx"><span rsf:id="msg=simplepage.export_docx"></span></a>
++                      <!-- just a message, so will display when it should not-->
++                      <div rsf:id="msg=simplepage.exportdocx-descrip"></div>
++                    </li> 
+                     <li rsf:id="show-lti-import">
+                       <form action="#" rsf:id="lti-import-form" method="post" enctype="multipart/form-data">
+ 			<input type="hidden" rsf:id="csrf1" />
+@@ -1275,7 +1291,52 @@
+ 					</div>
+ 				</form>
+ 			</div>
+-
++                        <div id="import-docx-dialog" rsf:id="import-docx-dialog">
++                            <form action="#" rsf:id="import-docx-form" method="post"
++                              enctype="multipart/form-data" class="controlPanel">
++                                <div class="">
++                                    <p>DOCX import</p>
++                                    <label rsf:id="msg=simplepage.import_docx_file" for="docx_file" id="docx-dialog-label">File</label> <br />
++                                    <input type="file" name="docx-file" id="docx-file" style="width:95%" class="edit-multimedia-input" /><br />
++                                    <a href="#" style="display: none" rsf:id="import-docx-link"	id="import-docx-link"></a>
++                                    <label id="import-docx-message">DOCX imported and lesson has been created. </label>
++                                    <a id="import-docx-resource"></a>
++                                </div>
++                                <div id="docx-import-controls">
++                                    <input type="submit" id="import-docx-submit" rsf:id="import-docx-submit" />
++                                    <input type="submit" rsf:id="import-docx-cancel" onclick="closeImportDocxDialog(); return false" />
++                                </div>
++                                <br/>
++                                <div id="importDocxProgressbar"></div>
++                            </form>
++                        </div>
++                    
++			<div id="export-epub-dialog" rsf:id="export-epub-dialog">
++                            <form action="#" rsf:id="export-epub-form" method="post"
++					enctype="multipart/form-data" class="controlPanel">
++                                <div class="">
++                                    <p>EPUB export</p>
++                                    <a href="#" style="display: none" rsf:id="export-epub-link"	id="export-epub-link"></a>
++                                    <label id="export-epub-message">Epub exported and saved to resources as : </label>
++                                    <a id="export-epub-resource"></a>
++                                </div>
++                                <div>
++                                    <input type="submit" id="export-epub-ok" rsf:id="export-epub-ok" onclick="location.reload(); return false" />
++                                </div>
++                                <div id="epubProgressbar"></div>
++                            </form>
++			</div>
++			<div id="export-docx-dialog" rsf:id="export-docx-dialog">
++                            <form action="#" rsf:id="export-docx-form" method="post"
++                                enctype="multipart/form-data" class="controlPanel">
++                                <div class="">
++                                    <p>DocX export</p>
++                                    <a href="#" style="display: none" rsf:id="export-docx-link"	id="export-docx-link"></a>
++                                </div>
++				
++				<div id="docxProgressbar"></div>
++                            </form>
++			</div>
+ 			<div id="edit-title-dialog" rsf:id="edit-title-dialog" class="lessonsDialog">
+ 				<div class="ui-widget" id="edit-title-error-container">
+ 					<div class="message-error">
