@@ -302,6 +302,20 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+	<repository>
+            <id>opencollab-snapshot</id>
+            <url>http://nexus.opencollab.co.za/nexus/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>opencollab-release</id>
+            <url>http://nexus.opencollab.co.za/nexus/content/repositories/releases</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>   
     </repositories>
 
     <dependencyManagement>
