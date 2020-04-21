@@ -512,6 +512,12 @@ public class UrkundReviewServiceImpl extends BaseContentReviewService {
 
 		log.info("Finished fetching reports from Urkund : {} success items, {} in progress, {} errors", success, inprogress, errors);
 	}
+	
+	@Override
+	public void syncRosters() {
+		// Auto-generated method stub
+	}
+
 
 	@Override
 	public boolean allowAllContent() {

@@ -23,6 +23,7 @@
     <module>kerberos</module>
     <module>openldap</module>
     <module>sample</module>
+    <module>witsldap</module> 
   </modules>
 
 

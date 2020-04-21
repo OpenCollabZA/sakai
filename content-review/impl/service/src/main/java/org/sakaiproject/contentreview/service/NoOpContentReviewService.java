@@ -101,6 +101,11 @@ public class NoOpContentReviewService extends BaseContentReviewService {
 	public void checkForReports() {
 		log.debug("void checkForReports");
 	}
+	
+	@Override
+	public void syncRosters() {
+		log.debug("void syncRosters");
+	}
 
 	@Override
 	public List<ContentReviewItem> getReportList(String siteId, String taskId)

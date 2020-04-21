@@ -1471,7 +1471,7 @@ public class SiteAction extends PagedResourceActionII {
 		
 		//can the user create course sites?
 		context.put(STATE_SITE_ADD_COURSE, SiteService.allowAddCourseSite());
-		
+		log.error("################" + SiteService.allowAddCourseSite());
 		// can the user create portfolio sites?
 		context.put("portfolioSiteType", STATE_PORTFOLIO_SITE_TYPE);
 		context.put(STATE_SITE_ADD_PORTFOLIO, SiteService.allowAddPortfolioSite());
@@ -1722,7 +1722,9 @@ public class SiteAction extends PagedResourceActionII {
 			List<String> mTypes = siteTypeProvider.getTypesForSiteCreation();
 			if (mTypes != null && !mTypes.isEmpty())
 			{
-				types.addAll(mTypes);
+			//	types.addAll(mTypes);
+				types.add("project");
+				types.add("course");
 			}
 			context.put("siteTypes", types);
 			context.put("templateControls", ServerConfigurationService.getString("site.setup.templateControls",ServerConfigurationService.getString("templateControls", "")));

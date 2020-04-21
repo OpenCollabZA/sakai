@@ -1,0 +1,930 @@
+From 9c067c671a40f56003181ac5ec2b01d2a1805af9 Mon Sep 17 00:00:00 2001
+From: Sam Ottenhoff <ottenhoff@longsight.com>
+Date: Tue, 26 Feb 2019 09:32:50 -0500
+Subject: [PATCH 1/5] SAK-41337 add a Turnitin roster sync job
+
+---
+ .../service/ContentReviewQueueService.java    |   8 +
+ .../service/ContentReviewService.java         |   7 +
+ .../CompilatioReviewServiceImpl.java          |   5 +
+ .../dao/ContentReviewItemDao.java             |  19 +-
+ .../ContentReviewFederatedServiceImpl.java    |   6 +-
+ .../ContentReviewQueueServiceImpl.java        |  14 +-
+ .../service/NoOpContentReviewService.java     |   5 +
+ .../service/jobs/ContentReviewRosterSync.java |  35 ++
+ .../oc/ContentReviewServiceTurnitinOC.java    |   5 +
+ .../turnitin/TurnitinReviewServiceImpl.java   | 347 ++++++++++++++++++
+ .../urkund/UrkundReviewServiceImpl.java       |   5 +
+ .../ContentReviewServiceVeriCite.java         |   8 +-
+ .../pack/src/webapp/WEB-INF/components.xml    |  18 +
+ 13 files changed, 478 insertions(+), 4 deletions(-)
+ create mode 100644 content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/jobs/ContentReviewRosterSync.java
+
+diff --git a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+index 96e33658172..a6ecbe3bb55 100644
+--- a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
++++ b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+@@ -154,6 +154,13 @@ int getReviewScore(Integer providerId, String contentId)
+ 	 * @return {@code List<ContentReviewItem>}
+ 	 */
+ 	List<ContentReviewItem> getAllContentReviewItemsGroupedBySiteAndTask(Integer providerId);
++	
++	/**
++	 * Gets all items grouped by site, order by most recent items descending
++	 * @param providerId the id of content review implementation
++	 * @return {@code List<ContentReviewItem>}
++	 */
++	List<Object[]> getContentReviewItemsGroupedBySite(Integer providerId);
+ 
+ 	/* Its not ideal to directly expose the direct DAO methods here, 
+ 	 * but this was needed in order to not have to change the
+@@ -173,4 +180,5 @@ int getReviewScore(Integer providerId, String contentId)
+ 	 */
+ 	@Deprecated
+ 	void delete(ContentReviewItem item);
++
+ }
+\ No newline at end of file
+diff --git a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewService.java b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewService.java
+index f7855c6f43f..3df9e5259ca 100644
+--- a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewService.java
++++ b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewService.java
+@@ -148,6 +148,13 @@ public Date getDateSubmitted(String contextId)
+ 	 *  Check for reports for all submitted items that don't have reports yet 
+ 	 */
+ 	public void checkForReports();
++
++	/**
++	 *  Sync roster information with services that depend on membership information.
++	 *  For example, Turnitin Sakai API expects the creation of courses, assignments, 
++	 *  user accounts, and instructor assignments.
++	 */
++	public void syncRosters();
+ 	
+ 	
+ 	/**
+diff --git a/content-review/impl/compilatio/src/main/java/org/sakaiproject/contentreview/compilatio/CompilatioReviewServiceImpl.java b/content-review/impl/compilatio/src/main/java/org/sakaiproject/contentreview/compilatio/CompilatioReviewServiceImpl.java
+index c9a3dcdeaa1..f63f53f1367 100644
+--- a/content-review/impl/compilatio/src/main/java/org/sakaiproject/contentreview/compilatio/CompilatioReviewServiceImpl.java
++++ b/content-review/impl/compilatio/src/main/java/org/sakaiproject/contentreview/compilatio/CompilatioReviewServiceImpl.java
+@@ -583,6 +583,11 @@ public void checkForReports() {
+ 
+ 		log.info("Finished fetching reports from Compilatio : "+success+" success items, "+inprogress+" in progress, "+errors+" errors");
+ 	}
++
++	@Override
++	public void syncRosters() {
++		// Auto-generated method stub
++	}
+ 	
+ 	@Override
+ 	public boolean allowAllContent() {
+diff --git a/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java b/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
+index 3c1142f59dd..c64d699f200 100644
+--- a/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
++++ b/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
+@@ -20,6 +20,7 @@
+ import java.util.Optional;
+ 
+ import org.hibernate.Criteria;
++import org.hibernate.criterion.Order;
+ import org.hibernate.criterion.Projections;
+ import org.hibernate.criterion.Restrictions;
+ 
+@@ -56,7 +57,23 @@
+ 
+ 		return c.list();
+ 	}
+-	
++
++	@SuppressWarnings("unchecked")
++	public List<Object[]> findByProviderGroupedBySite(Integer providerId) {
++
++		Criteria c = sessionFactory.getCurrentSession()
++				.createCriteria(ContentReviewItem.class)
++				.add(Restrictions.eq("providerId", providerId))
++				.setProjection( Projections.projectionList()
++							.add(Projections.distinct(Projections.property("siteId")))
++							.add(Projections.property("contentId"))
++						)
++				.addOrder(Order.desc("contentId"))
++				.setMaxResults(999);
++
++		return c.list();
++	}
++
+ 	@SuppressWarnings("unchecked")
+ 	public List<ContentReviewItem> findByProviderAwaitingReports(Integer providerId) {
+ 
+diff --git a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewFederatedServiceImpl.java b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewFederatedServiceImpl.java
+index e32e8c7c953..75d8ad718e2 100644
+--- a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewFederatedServiceImpl.java
++++ b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewFederatedServiceImpl.java
+@@ -148,6 +148,10 @@ public void checkForReports() {
+ 		providers.stream().filter(provider -> enabledProviders.stream().anyMatch(ep -> ep.intValue() ==provider.getProviderId().intValue())).forEach(ContentReviewService::checkForReports);
+ 	}
+ 
++	public void syncRosters() {
++		providers.stream().filter(provider -> enabledProviders.stream().anyMatch(ep -> ep.intValue() ==provider.getProviderId().intValue())).forEach(ContentReviewService::syncRosters);
++	}
++
+ 	@Override
+ 	public Integer getProviderId() {
+ 		return getSelectedProvider().getProviderId();
+@@ -309,4 +313,4 @@ public String getReviewReportRedirectUrl(String contentId, String assignmentRef,
+ 	public void webhookEvent(HttpServletRequest request, int providerId, Optional<String> customParam) {
+ 		providers.stream().filter(crs -> crs.getProviderId().intValue() == providerId).collect(Collectors.toList()).get(0).webhookEvent(request, providerId, customParam);		
+ 	}
+-}
+\ No newline at end of file
++}
+diff --git a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
+index d7c36b96266..0409aaabbec 100644
+--- a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
++++ b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
+@@ -146,7 +146,19 @@ public Date getDateSubmitted(Integer providerId, String contentId) throws QueueE
+ 		return itemDao.findByProviderGroupedBySiteAndTask(providerId);
+ 	}
+ 
+-	
++	/* (non-Javadoc)
++	 * @see org.sakaiproject.contentreview.common.service.ContentReviewCommonService#getAllContentReviewItems(java.lang.Integer, java.lang.String, java.lang.String)
++	 */
++	@Override
++	@Transactional(readOnly=true)
++	public List<Object[]> getContentReviewItemsGroupedBySite(Integer providerId) {
++		Objects.requireNonNull(providerId, "providerId cannot be null");
++
++		log.debug("Returning list of items grouped by site");
++
++		return itemDao.findByProviderGroupedBySite(providerId);
++	}
++
+ 	/* (non-Javadoc)
+ 	 * @see org.sakaiproject.contentreview.common.service.ContentReviewCommonService#resetUserDetailsLockedItems(java.lang.Integer, java.lang.String)
+ 	 */
+diff --git a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/NoOpContentReviewService.java b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/NoOpContentReviewService.java
+index 2bff05b3a2c..a0c305e4805 100644
+--- a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/NoOpContentReviewService.java
++++ b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/NoOpContentReviewService.java
+@@ -102,6 +102,11 @@ public void checkForReports() {
+ 		log.debug("void checkForReports");
+ 	}
+ 
++	@Override
++	public void syncRosters() {
++		log.debug("void syncRosters");
++	}
++
+ 	@Override
+ 	public List<ContentReviewItem> getReportList(String siteId, String taskId)
+ 			throws QueueException, SubmissionException, ReportException {
+diff --git a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/jobs/ContentReviewRosterSync.java b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/jobs/ContentReviewRosterSync.java
+new file mode 100644
+index 00000000000..953e1c9e9b3
+--- /dev/null
++++ b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/jobs/ContentReviewRosterSync.java
+@@ -0,0 +1,35 @@
++/**
++ * Copyright (c) 2003 The Apereo Foundation
++ *
++ * Licensed under the Educational Community License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *             http://opensource.org/licenses/ecl2
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.sakaiproject.contentreview.service.jobs;
++
++import org.quartz.Job;
++import org.quartz.JobExecutionContext;
++import org.quartz.JobExecutionException;
++import org.quartz.PersistJobDataAfterExecution;
++import org.sakaiproject.contentreview.service.ContentReviewService;
++
++import lombok.Setter;
++
++@PersistJobDataAfterExecution
++public class ContentReviewRosterSync implements Job {
++
++	@Setter
++	private ContentReviewService contentReviewService;
++	
++	public void execute(JobExecutionContext arg0) throws JobExecutionException {
++		contentReviewService.syncRosters();
++	}
++}
+diff --git a/content-review/impl/turnitin-oc/src/main/java/org/sakaiproject/contentreview/turnitin/oc/ContentReviewServiceTurnitinOC.java b/content-review/impl/turnitin-oc/src/main/java/org/sakaiproject/contentreview/turnitin/oc/ContentReviewServiceTurnitinOC.java
+index d78b66d7981..33bf0aacae7 100644
+--- a/content-review/impl/turnitin-oc/src/main/java/org/sakaiproject/contentreview/turnitin/oc/ContentReviewServiceTurnitinOC.java
++++ b/content-review/impl/turnitin-oc/src/main/java/org/sakaiproject/contentreview/turnitin/oc/ContentReviewServiceTurnitinOC.java
+@@ -391,6 +391,11 @@ public void checkForReports() {
+ 		// Auto-generated method stub
+ 	}
+ 
++	@Override
++	public void syncRosters() {
++		// Auto-generated method stub
++	}
++
+ 	@Override
+ 	public void createAssignment(final String contextId, final String assignmentRef, final Map opts)
+ 			throws SubmissionException, TransientSubmissionException {
+diff --git a/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java b/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
+index bb94e27edf2..89a373badab 100644
+--- a/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
++++ b/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
+@@ -22,6 +22,7 @@
+ import java.text.ParseException;
+ import java.text.SimpleDateFormat;
+ import java.time.Instant;
++import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Calendar;
+ import java.util.Date;
+@@ -1692,6 +1693,10 @@ public void checkForReports() {
+ 		checkForReportsBulk();
+ 	}
+ 
++	public void syncRosters() {
++		processSyncQueue();
++	}
++
+ 	/*
+ 	 * Fetch reports on a class by class basis
+ 	 */
+@@ -2590,4 +2595,346 @@ public String getEndUserLicenseAgreementVersion() {
+ 	public void webhookEvent(HttpServletRequest request, int providerId, Optional<String> customParam) {
+ 		//Auto-generated method stub
+ 	}
++
++	/**
++	 * This method takes a Sakai Site ID and returns the xml document from
++	 * Turnitin that lists all the instructors and students for that Turnitin
++	 * course.
++	 *
++	 * @param sakaiSiteID
++	 * @return
++	 */
++	private Document getEnrollmentDocument(String sakaiSiteID) {
++		Map instinfo = getInstructorInfo(sakaiSiteID);
++
++		Map params = TurnitinAPIUtil.packMap(null,
++				"fid","19",
++				"fcmd","5",
++				"utp","2",
++				"ctl",sakaiSiteID,
++				"cid",sakaiSiteID,
++				"src","9",
++				"encrypt","0"
++				);
++		params.putAll(instinfo);
++
++		Document togo = null;
++		try {
++			togo = turnitinConn.callTurnitinWDefaultsReturnDocument(params);
++		} catch (SubmissionException e) {
++			log.error("Error getting enrollment document for sakai site: "
++					+ sakaiSiteID, e);
++		} catch (TransientSubmissionException e) {
++			log.error("Error getting enrollment document for sakai site: "
++					+ sakaiSiteID, e);
++		}
++		return togo;
++	}
++
++	/**
++	 * This will make an API call to Turnitin to fetch the list of instructors
++	 * and students for the site.  Remember that in Turnitin, a user can be
++	 * <strong>both</strong> a student and an instructor.
++	 *
++	 * @param sakaiSiteID
++	 * @return An Map. The first element is a List<String> of instructor ids,
++	 * the second element is a List<String> of student ids.
++	 */
++	private Map<String, List<String>> getInstructorsStudentsForSite(String sakaiSiteID) {
++
++		List<String> instructorIds = new ArrayList<String>();
++		List<String> studentIds = new ArrayList<String>();
++		Document doc = getEnrollmentDocument(sakaiSiteID);
++
++		if (doc == null) {
++			return null;
++		}
++
++		NodeList instructors = doc.getElementsByTagName("instructor");
++
++		for (int i = 0; i < instructors.getLength(); i++) {
++			Element nextInst = (Element) instructors.item(i);
++			String instUID = nextInst.getElementsByTagName("uid").item(0).getTextContent();
++			instructorIds.add(instUID);
++		}
++
++		NodeList students = doc.getElementsByTagName("student");
++
++		for (int i = 0 ; i < students.getLength(); i++) {
++			Element nextStud = (Element) students.item(i);
++			String studUID = nextStud.getElementsByTagName("uid").item(0).getTextContent();
++			studentIds.add(studUID);
++		}
++
++		Map togo = new HashMap<String, List<String>>();
++		togo.put("instructor", instructorIds);
++		togo.put("student", studentIds);
++
++		return togo;
++	}
++
++	/**
++	 * This method swap a users role in a Turnitin site. The currentRole should
++	 * be accurate for the users current information otherwise the method may
++	 * fail (this all depends on calls to Turnitin's Webservice API's). So if
++	 * you pass in a site, a user, and the value 1 (student) that user should be
++	 * switched to an instructor in that site.
++	 *
++	 * @param siteId
++	 * @param user
++	 * @param currentRole The current role using Turnitin codes. In Turnitin a
++	 * value of 1 always represents a student and a value of 2 represents an
++	 * instructor.
++	 * @return
++	 */
++	private boolean swapTurnitinRoles(String siteId, User user, int currentRole ) {
++
++		if (user != null) {
++			String uem = getEmail(user);
++			Map params = TurnitinAPIUtil.packMap(turnitinConn.getBaseTIIOptions(),
++					"fid","19","fcmd", "3", "uem", uem, "uid", user.getId(),
++					"ufn", user.getFirstName(), "uln", user.getLastName(),
++					"username", user.getDisplayName(), "ctl", siteId, "cid", siteId,
++					"utp", currentRole+"",
++					"tem", getInstructorInfo(siteId).get("uem"));
++
++			Map ret = new HashMap();
++			try {
++				ret = turnitinConn.callTurnitinWDefaultsReturnMap(params);
++			} catch (SubmissionException e) {
++				log.error("Error syncing Turnitin site: " + siteId + " user: " + user.getEid(), e);
++			} catch (TransientSubmissionException e) {
++				log.error("Error syncing Turnitin site: " + siteId + " user: " + user.getEid(), e);
++			}
++
++			// A Successful return should look like:
++			// {rmessage=Successful!, rcode=93}
++			if (ret.containsKey("rcode") && ret.get("rcode").equals("93")) {
++				log.info("Successfully swapped user roles for site: " + siteId + " user: " + user.getEid() + " oldRole: " + currentRole);
++				return true;
++			}
++
++			// Special case: ignore return code 450 (unable to swap role because the user is the only instructor)
++			// This is typically because there is more than one Sakai user in the site with the same email address,
++			// and Turnitin is not distinguishing between them despite the uid being supplied.
++			if (ret.containsKey("rcode") && ret.get("rcode").equals("450")) {
++				log.info("Response code 450 (user is only instructor in the site); not changing user role for site: " + siteId + " user: " + user.getEid());
++				return true;
++			}
++		}
++		else {
++			// This was successful because the user doesn't exist in our Sakai
++			// installation, and so we don't need to sync them at all.
++			return true;
++		}
++
++		log.warn("Unable to swap user roles for site: " + siteId + " user: " + user.getEid() + " oldRole: " + currentRole);
++		return false;
++	}
++
++	/**
++	 * Add an instructor to a class in Turnitin, allowing them to properly
++	 * access assignments created by other instructors. (Only applicable to SRC 9)
++	 * @param siteId Sakai site ID
++	 * @param userId Sakai User ID
++	 * @throws SubmissionException
++	 * @throws TransientSubmissionException
++	 */
++	@SuppressWarnings("unchecked")
++	private void addInstructor(String siteId, String userId) throws SubmissionException, TransientSubmissionException {
++		log.info("Adding Instructor ("+userId+") to site: " + siteId);
++		User user;
++		try {
++			user = userDirectoryService.getUser(userId);
++		} catch (Exception t) {
++			throw new SubmissionException ("(addInstructor)Cannot get user information.", t);
++		}
++		String cpw = turnitinConn.getDefaultClassPassword();
++		String ctl = siteId;
++		String fcmd = "2";
++		String fid = "2";
++		String utp = "2";
++		String cid = siteId;
++		String uem = getEmail(user);
++		if (uem == null || uem.trim().isEmpty()) {
++			log.debug("User " + userId + " has no email address");
++			throw new SubmissionException ("User has no email address");
++		}
++		String uid = user.getId();
++		String ufn = user.getFirstName();
++		if (ufn == null || ufn.trim().isEmpty()) {
++			log.debug("User " + userId + " has no first name");
++			throw new SubmissionException ("User has no first name");
++		}
++		String uln = user.getLastName();
++		if (uln == null || uln.trim().isEmpty()) {
++			log.debug("User " + userId + " has no last name");
++			throw new SubmissionException ("User has no last name");
++		}
++		String dis = turnitinConn.isInstructorAccountNotified() ? "0" : "1"; // dis=1 means disable sending email to the user
++
++		Document document = null;
++
++		Map params = TurnitinAPIUtil.packMap(turnitinConn.getBaseTIIOptions(),
++				"uid", uid,
++				"cid", cid,
++				"cpw", cpw,
++				"ctl", ctl,
++				"fcmd", fcmd,
++				"fid", fid,
++				"uem", uem,
++				"ufn", ufn,
++				"uln", uln,
++				"utp", utp,
++				"dis", dis
++				);
++		document = turnitinConn.callTurnitinReturnDocument(params);
++
++		Element root = document.getDocumentElement();
++		String rcode = ((CharacterData) (root.getElementsByTagName("rcode").item(0).getFirstChild())).getData().trim();
++
++		if (((CharacterData) (root.getElementsByTagName("rcode").item(0).getFirstChild())).getData().trim().compareTo("20") == 0 ||
++				((CharacterData) (root.getElementsByTagName("rcode").item(0).getFirstChild())).getData().trim().compareTo("21") == 0 ) {
++			log.debug("Add instructor successful");
++		} else {
++			if ("218".equals(rcode) || "9999".equals(rcode)) {
++				throw new TransientSubmissionException("Create Class not successful. Message: " + ((CharacterData) (root.getElementsByTagName("rmessage").item(0).getFirstChild())).getData().trim() + ". Code: " + ((CharacterData) (root.getElementsByTagName("rcode").item(0).getFirstChild())).getData().trim());
++			} else {
++				throw new SubmissionException("Create Class not successful. Message: " + ((CharacterData) (root.getElementsByTagName("rmessage").item(0).getFirstChild())).getData().trim() + ". Code: " + ((CharacterData) (root.getElementsByTagName("rcode").item(0).getFirstChild())).getData().trim());
++			}
++		}
++	}
++	/**
++	 * Looks up a Sakai {@link org.sakaiproject.user.api.User} by userid,
++	 * returns null if they do not exist.
++	 *
++	 * @param userid
++	 * @return the User object or null if the user does not exist in the Sakai
++	 * installation.
++	 */
++	private User getUser(String userid) {
++		User user = null;
++		try {
++			user = userDirectoryService.getUser(userid);
++		} catch (UserNotDefinedException e) {
++			log.warn("Attemping to lookup user for Turnitn Sync that does not exist: " + userid, e);
++		}
++		return user;
++	}
++
++	/**
++	 * Return a Map containing all users of x type enrolled on a site
++	 * @param siteId Sakai site ID
++	 * @param role specific user role e.g. 'instructor'
++	 * @return
++	 */
++	@SuppressWarnings("unchecked")
++	private Map getAllUsers(String siteId, String role) {
++		String ROLE = "section.role."+role;
++		Map<String,String> users = new HashMap();
++		Site site = null;
++		try {
++			site = siteService.getSite(siteId);
++			Set<String> instIds = site.getUsersIsAllowed(ROLE);
++			List<User> activeUsers = userDirectoryService.getUsers(instIds);
++			for (int i = 0; i < activeUsers.size(); i++) {
++				User user = activeUsers.get(i);
++				users.put(user.getId(),user.getId());
++			}
++		} catch (IdUnusedException e) {
++			log.error("Unable to fetch site in getAllUsers: " + siteId, e);
++		} catch (Exception e) {
++			log.error("Exception in getAllUsers", e);
++		}
++		return users;
++	}
++	/**
++	 * The primary method of this class. Syncs the enrollment between a Sakai
++	 * Site and it's corresponding
++	 *
++	 * @param sakaiSiteID
++	 */
++	private boolean syncSiteWithTurnitin(String sakaiSiteID) {
++		boolean success = true;
++
++		Site site = null;
++		try {
++			site = siteService.getSite(sakaiSiteID);
++		} catch (IdUnusedException e) {
++			log.info("Ignoring site " + sakaiSiteID + " which no longer exists.");
++			return true;
++		}
++
++		Map<String, List<String>> enrollment = getInstructorsStudentsForSite(sakaiSiteID);
++
++		if (enrollment == null) {
++			return false;
++		}
++
++		// Only run if using SRC 9
++		if (turnitinConn.isUseSourceParameter()) {
++			// Enroll all instructors
++			log.debug("Enrolling all instructors");
++			Map<String,String> allInstructors = getAllUsers(sakaiSiteID,"instructor");
++			for (String key : allInstructors.keySet()) {
++				try {
++					addInstructor(sakaiSiteID,allInstructors.get(key));
++				} catch (SubmissionException e) {
++					log.warn("SubmissionException from syncSiteWithTurnitin", e);
++				} catch(TransientSubmissionException e){
++					log.warn("TransientSubmissionException from syncSiteWithTurnitin", e);
++				} catch(Exception e){
++					log.error("Unknown error", e);
++				}
++			}
++		} else {
++			log.debug("Checking users with Turnitin student role");
++			for (String uid: enrollment.get("student")) {
++				if (site.isAllowed(uid, "section.role.instructor")) {
++					// User has an instructor role in Sakai - change Turnitin role from student to instructor
++					boolean status = swapTurnitinRoles(sakaiSiteID, getUser(uid), 1);
++					if (status == false) {
++						success = false;
++					}
++				}
++			}
++		}
++
++		log.debug("Checking users with Turnitin instructor role");
++		for (String uid: enrollment.get("instructor")) {
++			if (!site.isAllowed(uid, "section.role.instructor")) {
++				// User does not have instructor role in Sakai - change Turnitin role from instructor to student
++				boolean status = swapTurnitinRoles(sakaiSiteID, getUser(uid), 2);
++				if (status == false) {
++					success = false;
++				}
++			}
++		}
++
++		return success;
++	}
++
++	/**
++	 * This is the main processing method that's meant to be periodically run
++	 * by a quartz job or other script. It will sync all the Sakai Sites that
++	 * have been put in the queue due to site updates or something.
++	 */
++	public void processSyncQueue() {
++
++		log.info("Running Turnitin Roster Sync");
++
++		List<Object[]> items = crqs.getContentReviewItemsGroupedBySite(getProviderId());
++		for (Object[] o : items) {
++			log.debug("Turnitin roster sync site: {}" + java.util.Arrays.toString(o));
++			try {
++				String siteId = (String) o[0];
++				syncSiteWithTurnitin(siteId);
++			} catch (Exception e) {
++				log.error("Unable to complete Turnitin Roster Sync for site", e);
++			}
++		}
++
++		log.info("Completed Turnitin Roster Sync");
++	}
++
+ }
+diff --git a/content-review/impl/urkund/src/main/java/org/sakaiproject/contentreview/urkund/UrkundReviewServiceImpl.java b/content-review/impl/urkund/src/main/java/org/sakaiproject/contentreview/urkund/UrkundReviewServiceImpl.java
+index c10b7a62099..9c4d7c2209a 100644
+--- a/content-review/impl/urkund/src/main/java/org/sakaiproject/contentreview/urkund/UrkundReviewServiceImpl.java
++++ b/content-review/impl/urkund/src/main/java/org/sakaiproject/contentreview/urkund/UrkundReviewServiceImpl.java
+@@ -513,6 +513,11 @@ public void checkForReports() {
+ 		log.info("Finished fetching reports from Urkund : {} success items, {} in progress, {} errors", success, inprogress, errors);
+ 	}
+ 
++	@Override
++	public void syncRosters() {
++		// Auto-generated method stub
++	}
++
+ 	@Override
+ 	public boolean allowAllContent() {
+ 		return serverConfigurationService.getBoolean(PROP_ACCEPT_ALL_FILES, false);
+diff --git a/content-review/impl/vericite/src/main/java/org/sakaiproject/contentreview/vericite/ContentReviewServiceVeriCite.java b/content-review/impl/vericite/src/main/java/org/sakaiproject/contentreview/vericite/ContentReviewServiceVeriCite.java
+index 3e88733dfec..60c3db793ce 100644
+--- a/content-review/impl/vericite/src/main/java/org/sakaiproject/contentreview/vericite/ContentReviewServiceVeriCite.java
++++ b/content-review/impl/vericite/src/main/java/org/sakaiproject/contentreview/vericite/ContentReviewServiceVeriCite.java
+@@ -146,8 +146,14 @@ public boolean allowResubmission() {
+ 		return true;
+ 	}
+ 
++	@Override
+ 	public void checkForReports() {
+-		
++		// Auto-generated method stub
++	}
++
++	@Override
++	public void syncRosters() {
++		// Auto-generated method stub
+ 	}
+ 
+ 	public void createAssignment(final String contextId, final String assignmentRef, final Map opts)
+diff --git a/content-review/pack/src/webapp/WEB-INF/components.xml b/content-review/pack/src/webapp/WEB-INF/components.xml
+index a631286f769..b6bcba3f46c 100644
+--- a/content-review/pack/src/webapp/WEB-INF/components.xml
++++ b/content-review/pack/src/webapp/WEB-INF/components.xml
+@@ -76,4 +76,22 @@
+ 			<ref bean="org.sakaiproject.api.app.scheduler.SchedulerManager" />
+ 		</property>
+ 	</bean>
++
++	<bean id="ContentReviewRosterSync" class="org.sakaiproject.contentreview.service.jobs.ContentReviewRosterSync">
++		<property name="contentReviewService">
++			<ref bean="org.sakaiproject.contentreview.service.ContentReviewService" />
++		</property>
++	</bean>
++
++	<bean id="org.sakaiproject.api.app.scheduler.JobBeanWrapper.schedulerContentReviewRosterSync" class="org.sakaiproject.component.app.scheduler.jobs.SpringStatefulJobBeanWrapper" init-method="init">
++		<property name="beanId">
++			<value>ContentReviewRosterSync</value>
++		</property>
++		<property name="jobName">
++			<value>Process Content Review Roster Sync</value>
++		</property>
++		<property name="schedulerManager">
++			<ref bean="org.sakaiproject.api.app.scheduler.SchedulerManager" />
++		</property>
++	</bean>
+ </beans>
+
+From 79d7260ea1a270accba87c81c0835f0efada3ceb Mon Sep 17 00:00:00 2001
+From: Sam Ottenhoff <ottenhoff@longsight.com>
+Date: Mon, 4 Mar 2019 09:36:07 -0500
+Subject: [PATCH 2/5] Fixed javadoc
+
+---
+ .../contentreview/service/ContentReviewQueueService.java      | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+index a6ecbe3bb55..cb9fc0a6eb4 100644
+--- a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
++++ b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+@@ -158,7 +158,7 @@ int getReviewScore(Integer providerId, String contentId)
+ 	/**
+ 	 * Gets all items grouped by site, order by most recent items descending
+ 	 * @param providerId the id of content review implementation
+-	 * @return {@code List<ContentReviewItem>}
++	 * @return {@code List<Object[]>}
+ 	 */
+ 	List<Object[]> getContentReviewItemsGroupedBySite(Integer providerId);
+ 
+@@ -181,4 +181,4 @@ int getReviewScore(Integer providerId, String contentId)
+ 	@Deprecated
+ 	void delete(ContentReviewItem item);
+ 
+-}
+\ No newline at end of file
++}
+
+From b805a3231de0909bab8574f69ea8d1ea7a6e46e6 Mon Sep 17 00:00:00 2001
+From: Sam Ottenhoff <ottenhoff@longsight.com>
+Date: Mon, 11 Mar 2019 17:54:08 -0400
+Subject: [PATCH 3/5] SAK-41337 mods for ern
+
+---
+ .../contentreview/service/ContentReviewQueueService.java  | 4 ++--
+ .../contentreview/dao/ContentReviewItemDao.java           | 8 ++++----
+ .../service/ContentReviewQueueServiceImpl.java            | 2 +-
+ .../contentreview/turnitin/TurnitinReviewServiceImpl.java | 8 ++++----
+ 4 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+index cb9fc0a6eb4..8b685f6b632 100644
+--- a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
++++ b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+@@ -158,9 +158,9 @@ int getReviewScore(Integer providerId, String contentId)
+ 	/**
+ 	 * Gets all items grouped by site, order by most recent items descending
+ 	 * @param providerId the id of content review implementation
+-	 * @return {@code List<Object[]>}
++	 * @return {@code List<String[]>} string array containing siteId and id
+ 	 */
+-	List<Object[]> getContentReviewItemsGroupedBySite(Integer providerId);
++	List<String[]> getContentReviewItemsGroupedBySite(Integer providerId);
+ 
+ 	/* Its not ideal to directly expose the direct DAO methods here, 
+ 	 * but this was needed in order to not have to change the
+diff --git a/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java b/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
+index c64d699f200..a9f891c0f41 100644
+--- a/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
++++ b/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
+@@ -59,16 +59,16 @@
+ 	}
+ 
+ 	@SuppressWarnings("unchecked")
+-	public List<Object[]> findByProviderGroupedBySite(Integer providerId) {
++	public List<String[]> findByProviderGroupedBySite(Integer providerId) {
+ 
+ 		Criteria c = sessionFactory.getCurrentSession()
+ 				.createCriteria(ContentReviewItem.class)
+ 				.add(Restrictions.eq("providerId", providerId))
+ 				.setProjection( Projections.projectionList()
+ 							.add(Projections.distinct(Projections.property("siteId")))
+-							.add(Projections.property("contentId"))
++							.add(Projections.property("id"))
+ 						)
+-				.addOrder(Order.desc("contentId"))
++				.addOrder(Order.desc("id"))
+ 				.setMaxResults(999);
+ 
+ 		return c.list();
+@@ -118,4 +118,4 @@
+ 		
+ 		return Optional.ofNullable((ContentReviewItem) c.uniqueResult());
+ 	}
+-}
+\ No newline at end of file
++}
+diff --git a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
+index 0409aaabbec..401fbc74f12 100644
+--- a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
++++ b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
+@@ -151,7 +151,7 @@ public Date getDateSubmitted(Integer providerId, String contentId) throws QueueE
+ 	 */
+ 	@Override
+ 	@Transactional(readOnly=true)
+-	public List<Object[]> getContentReviewItemsGroupedBySite(Integer providerId) {
++	public List<String[]> getContentReviewItemsGroupedBySite(Integer providerId) {
+ 		Objects.requireNonNull(providerId, "providerId cannot be null");
+ 
+ 		log.debug("Returning list of items grouped by site");
+diff --git a/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java b/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
+index 89a373badab..d9961233d78 100644
+--- a/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
++++ b/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
+@@ -2923,11 +2923,11 @@ public void processSyncQueue() {
+ 
+ 		log.info("Running Turnitin Roster Sync");
+ 
+-		List<Object[]> items = crqs.getContentReviewItemsGroupedBySite(getProviderId());
+-		for (Object[] o : items) {
+-			log.debug("Turnitin roster sync site: {}" + java.util.Arrays.toString(o));
++		List<String[]> items = crqs.getContentReviewItemsGroupedBySite(getProviderId());
++		for (String[] s : items) {
++			log.debug("Turnitin roster sync site: {}", Arrays.toString(s));
+ 			try {
+-				String siteId = (String) o[0];
++				String siteId = s[0];
+ 				syncSiteWithTurnitin(siteId);
+ 			} catch (Exception e) {
+ 				log.error("Unable to complete Turnitin Roster Sync for site", e);
+
+From 4a7c7b20d305ee48c93d567e8e06e052360acf02 Mon Sep 17 00:00:00 2001
+From: Sam Ottenhoff <ottenhoff@longsight.com>
+Date: Tue, 12 Mar 2019 10:03:26 -0400
+Subject: [PATCH 4/5] SAK-41337 return a more predictable List<String> of
+ siteIds
+
+---
+ .../service/ContentReviewQueueService.java            |  4 ++--
+ .../contentreview/dao/ContentReviewItemDao.java       |  7 +++++--
+ .../service/ContentReviewQueueServiceImpl.java        |  2 +-
+ .../turnitin/TurnitinReviewServiceImpl.java           | 11 +++++------
+ 4 files changed, 13 insertions(+), 11 deletions(-)
+
+diff --git a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+index 8b685f6b632..77c9e7f5150 100644
+--- a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
++++ b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+@@ -158,9 +158,9 @@ int getReviewScore(Integer providerId, String contentId)
+ 	/**
+ 	 * Gets all items grouped by site, order by most recent items descending
+ 	 * @param providerId the id of content review implementation
+-	 * @return {@code List<String[]>} string array containing siteId and id
++	 * @return {@code List<String[]>} list containing siteIds ordered by most recently used sites
+ 	 */
+-	List<String[]> getContentReviewItemsGroupedBySite(Integer providerId);
++	List<String> getContentReviewItemsGroupedBySite(Integer providerId);
+ 
+ 	/* Its not ideal to directly expose the direct DAO methods here, 
+ 	 * but this was needed in order to not have to change the
+diff --git a/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java b/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
+index a9f891c0f41..863f647d000 100644
+--- a/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
++++ b/content-review/impl/dao/src/main/java/org/sakaiproject/contentreview/dao/ContentReviewItemDao.java
+@@ -17,7 +17,9 @@
+ 
+ import java.util.Calendar;
+ import java.util.List;
++import java.util.Objects;
+ import java.util.Optional;
++import java.util.stream.Collectors;
+ 
+ import org.hibernate.Criteria;
+ import org.hibernate.criterion.Order;
+@@ -59,7 +61,7 @@
+ 	}
+ 
+ 	@SuppressWarnings("unchecked")
+-	public List<String[]> findByProviderGroupedBySite(Integer providerId) {
++	public List<String> findByProviderGroupedBySite(Integer providerId) {
+ 
+ 		Criteria c = sessionFactory.getCurrentSession()
+ 				.createCriteria(ContentReviewItem.class)
+@@ -71,7 +73,8 @@
+ 				.addOrder(Order.desc("id"))
+ 				.setMaxResults(999);
+ 
+-		return c.list();
++		List<Object[]> listOfObjects = c.list();
++		return listOfObjects.stream().map(o -> o[0]).map(Objects::toString).collect(Collectors.toList());
+ 	}
+ 
+ 	@SuppressWarnings("unchecked")
+diff --git a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
+index 401fbc74f12..c4e5c243b7a 100644
+--- a/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
++++ b/content-review/impl/service/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueServiceImpl.java
+@@ -151,7 +151,7 @@ public Date getDateSubmitted(Integer providerId, String contentId) throws QueueE
+ 	 */
+ 	@Override
+ 	@Transactional(readOnly=true)
+-	public List<String[]> getContentReviewItemsGroupedBySite(Integer providerId) {
++	public List<String> getContentReviewItemsGroupedBySite(Integer providerId) {
+ 		Objects.requireNonNull(providerId, "providerId cannot be null");
+ 
+ 		log.debug("Returning list of items grouped by site");
+diff --git a/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java b/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
+index d9961233d78..17ed58be64c 100644
+--- a/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
++++ b/content-review/impl/turnitin/src/main/java/org/sakaiproject/contentreview/turnitin/TurnitinReviewServiceImpl.java
+@@ -2666,7 +2666,7 @@ private Document getEnrollmentDocument(String sakaiSiteID) {
+ 			studentIds.add(studUID);
+ 		}
+ 
+-		Map togo = new HashMap<String, List<String>>();
++		Map<String, List<String>> togo = new HashMap<>();
+ 		togo.put("instructor", instructorIds);
+ 		togo.put("student", studentIds);
+ 
+@@ -2831,7 +2831,7 @@ private User getUser(String userid) {
+ 	@SuppressWarnings("unchecked")
+ 	private Map getAllUsers(String siteId, String role) {
+ 		String ROLE = "section.role."+role;
+-		Map<String,String> users = new HashMap();
++		Map<String,String> users = new HashMap<>();
+ 		Site site = null;
+ 		try {
+ 			site = siteService.getSite(siteId);
+@@ -2923,11 +2923,10 @@ public void processSyncQueue() {
+ 
+ 		log.info("Running Turnitin Roster Sync");
+ 
+-		List<String[]> items = crqs.getContentReviewItemsGroupedBySite(getProviderId());
+-		for (String[] s : items) {
+-			log.debug("Turnitin roster sync site: {}", Arrays.toString(s));
++		List<String> items = crqs.getContentReviewItemsGroupedBySite(getProviderId());
++		for (String siteId : items) {
++			log.debug("Turnitin roster sync site: {}", siteId);
+ 			try {
+-				String siteId = s[0];
+ 				syncSiteWithTurnitin(siteId);
+ 			} catch (Exception e) {
+ 				log.error("Unable to complete Turnitin Roster Sync for site", e);
+
+From 3a7ae85a4e0e87837d69701aff7c0b54c8680f38 Mon Sep 17 00:00:00 2001
+From: Sam Ottenhoff <ottenhoff@longsight.com>
+Date: Tue, 12 Mar 2019 12:11:12 -0400
+Subject: [PATCH 5/5] SAK-41337 fix javadoc
+
+---
+ .../contentreview/service/ContentReviewQueueService.java        | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+index 77c9e7f5150..6c923ce51fa 100644
+--- a/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
++++ b/content-review/api/src/main/java/org/sakaiproject/contentreview/service/ContentReviewQueueService.java
+@@ -158,7 +158,7 @@ int getReviewScore(Integer providerId, String contentId)
+ 	/**
+ 	 * Gets all items grouped by site, order by most recent items descending
+ 	 * @param providerId the id of content review implementation
+-	 * @return {@code List<String[]>} list containing siteIds ordered by most recently used sites
++	 * @return {@code List<String>} list containing siteIds ordered by most recently used sites
+ 	 */
+ 	List<String> getContentReviewItemsGroupedBySite(Integer providerId);
+ 

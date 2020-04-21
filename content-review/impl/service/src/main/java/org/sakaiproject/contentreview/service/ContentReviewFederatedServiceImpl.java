@@ -149,6 +149,11 @@ public class ContentReviewFederatedServiceImpl extends BaseContentReviewService 
 	}
 
 	@Override
+	public void syncRosters() {
+		providers.stream().filter(provider -> enabledProviders.stream().anyMatch(ep -> ep.intValue() ==provider.getProviderId().intValue())).forEach(ContentReviewService::syncRosters);
+	}
+	
+	@Override
 	public Integer getProviderId() {
 		return getSelectedProvider().getProviderId();
 	}

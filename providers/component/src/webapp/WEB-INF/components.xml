@@ -210,5 +210,23 @@
 			</bean>
 		</property>
 	</bean>
+<bean id="org.sakaiproject.user.api.UserDirectoryProvider"
+			class="org.wits.elsi.user.WitsLdapUserDirectoryProvider"
+			init-method="init"
+			destroy-method="destroy"
+			>
+        <property name="userDirectoryService" ref="org.sakaiproject.user.api.UserDirectoryService" />
+        <property name="securityService" ref="org.sakaiproject.authz.api.SecurityService" />
+        <property name="siteService" ref="org.sakaiproject.site.api.SiteService" />
+        <property name="toolManager" ref="org.sakaiproject.tool.api.ToolManager" />
+        <property name="dataSource" ref="javax.sql.DataSource" />
+        <property name="serverConfigurationService" ref="org.sakaiproject.component.api.ServerConfigurationService"/>
+        <property name="sessionManager" ref="org.sakaiproject.tool.api.SessionManager"/>
+        <property name="usageSessionService" ref="org.sakaiproject.event.api.UsageSessionService"/>
+        <property name="eventTrackingService" ref="org.sakaiproject.event.api.EventTrackingService"/>
+        <property name="authzGroupService" ref="org.sakaiproject.authz.api.AuthzGroupService"/>
+        <property name="preferencesService" ref="org.sakaiproject.user.api.PreferencesService"/>   
+        <property name="emailService" ref="org.sakaiproject.email.api.EmailService" />
+    </bean>
 
 </beans>

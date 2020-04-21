@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies
+END
+fluent-hc-4.2.1.jar
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/fluent-hc-4.2.1.jar
+END
+gson-2.2.2.jar
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/gson-2.2.2.jar
+END
+httpmime-4.2.1.jar
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/httpmime-4.2.1.jar
+END
+commons-codec-1.6.jar
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/commons-codec-1.6.jar
+END
+httpcore-4.2.1.jar
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/httpcore-4.2.1.jar
+END
+commons-logging-1.1.1.jar
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/commons-logging-1.1.1.jar
+END
+httpclient-4.2.1.jar
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/httpclient-4.2.1.jar
+END
+httpclient-cache-4.2.1.jar
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/dependencies/httpclient-cache-4.2.1.jar
+END

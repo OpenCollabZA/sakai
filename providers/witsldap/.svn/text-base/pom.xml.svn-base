@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <!-- Sakai master pom is the parent -->
+    <parent>
+        <artifactId>master</artifactId>
+        <groupId>org.sakaiproject</groupId>
+        <version>12.6</version>
+        <relativePath>../sakai/master/pom.xml</relativePath>
+    </parent>
+    <name>sakai-witsldap-provider</name>
+    <groupId>org.sakaiproject</groupId>
+    <artifactId>sakai-witsldap-provider</artifactId>
+    <organization>
+        <name>University of Witwatersrand</name>
+        <url>http://sakaiproject.org/</url>
+    </organization>
+    <inceptionYear>2011</inceptionYear>
+    <packaging>jar</packaging>
+    <properties>
+        <deploy.target/>
+    </properties>
+    <dependencies>
+
+        <dependency>
+            <groupId>org.sakaiproject.kernel</groupId>
+            <artifactId>sakai-kernel-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.sakaiproject.kernel</groupId>
+            <artifactId>sakai-component-manager</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.sakaiproject.kernel</groupId>
+            <artifactId>sakai-kernel-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.sakaiproject.edu-services.course-management</groupId>
+            <artifactId>coursemanagement-api</artifactId>
+        </dependency>
+        <!--
+        This has been relocated to sakai-kernel-util
+        org.sakaiproject.kernel.utilsakai-util-->
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.0.4</version>
+        </dependency>        
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.2.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.2.1</version>
+            <scope>compile</scope>
+        </dependency> 
+    </dependencies>
+    <build>
+        <resources/>
+    </build>
+</project>

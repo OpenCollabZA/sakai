@@ -146,8 +146,14 @@ public class ContentReviewServiceVeriCite extends BaseContentReviewService {
 		return true;
 	}
 
+	@Override
 	public void checkForReports() {
 		
+	}
+
+	@Override
+	public void syncRosters() {
+		// Auto-generated method stub
 	}
 
 	public void createAssignment(final String contextId, final String assignmentRef, final Map opts)

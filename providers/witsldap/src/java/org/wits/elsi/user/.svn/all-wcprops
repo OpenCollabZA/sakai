@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/wits_sakai/!svn/ver/386/witsldap/trunk/src/java/org/wits/elsi/user
+END
+LDAPUser.java
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/src/java/org/wits/elsi/user/LDAPUser.java
+END
+Unit.java
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/src/java/org/wits/elsi/user/Unit.java
+END
+LDAPService.java
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/wits_sakai/!svn/ver/386/witsldap/trunk/src/java/org/wits/elsi/user/LDAPService.java
+END
+WitsUserUtil.java
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/wits_sakai/!svn/ver/385/witsldap/trunk/src/java/org/wits/elsi/user/WitsUserUtil.java
+END
+StaffLDAP.java
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/wits_sakai/!svn/ver/385/witsldap/trunk/src/java/org/wits/elsi/user/StaffLDAP.java
+END
+Config.java
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/src/java/org/wits/elsi/user/Config.java
+END
+WitsLdapUserDirectoryProvider.java
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/svn/wits_sakai/!svn/ver/386/witsldap/trunk/src/java/org/wits/elsi/user/WitsLdapUserDirectoryProvider.java
+END
+StudentLDAP.java
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/wits_sakai/!svn/ver/385/witsldap/trunk/src/java/org/wits/elsi/user/StudentLDAP.java
+END
+StudentUnits.java
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/wits_sakai/!svn/ver/166/witsldap/trunk/src/java/org/wits/elsi/user/StudentUnits.java
+END

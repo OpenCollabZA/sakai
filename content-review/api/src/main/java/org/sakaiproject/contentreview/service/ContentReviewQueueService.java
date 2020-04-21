@@ -50,9 +50,9 @@ public interface ContentReviewQueueService {
 	 * @throws Exception
 	 * @deprecated Use getQueuedItem method to get ContentReviewItem object
 	 */
-	@Deprecated
-	int getReviewScore(Integer providerId, String contentId)
-			throws QueueException, ReportException, Exception;
+//	@Deprecated
+//	int getReviewScore(Integer providerId, String contentId)
+	//		throws QueueException, ReportException, Exception;
 
 	/**
 	 * Get the current status of the content item {@code org.sakaiproject.contentreview.dao.ContentReviewConstants}
@@ -154,6 +154,14 @@ public interface ContentReviewQueueService {
 	 * @return {@code List<ContentReviewItem>}
 	 */
 	List<ContentReviewItem> getAllContentReviewItemsGroupedBySiteAndTask(Integer providerId);
+	
+
+	/**
+	 * Gets all items grouped by site, order by most recent items descending
+	 * @param providerId the id of content review implementation
+	 * @return {@code List<String>} list containing siteIds ordered by most recently used sites
+	 */
+	List<String> getContentReviewItemsGroupedBySite(Integer providerId);
 
 	/* Its not ideal to directly expose the direct DAO methods here, 
 	 * but this was needed in order to not have to change the
