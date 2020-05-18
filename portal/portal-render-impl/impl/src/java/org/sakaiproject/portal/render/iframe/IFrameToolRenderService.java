@@ -32,7 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.sakaiproject.component.cover.ServerConfigurationService;
+//import org.sakaiproject.component.cover.ServerConfigurationService;
+import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.portal.api.Portal;
 import org.sakaiproject.portal.api.PortalService;
 import org.sakaiproject.portal.api.StoredState;
@@ -54,9 +55,8 @@ import org.sakaiproject.util.Web;
 public class IFrameToolRenderService implements ToolRenderService
 {
 	private final static String INVALID_PARAM_CHARS = ".*[\"'<>].*";
-
 	private PortalService portalService;
-
+	private ServerConfigurationService serverConfigurationService;
 	// private static ResourceLoader rb = new ResourceLoader("sitenav");
 
 	public boolean preprocess(Portal portal, HttpServletRequest request, HttpServletResponse response,
@@ -72,8 +72,9 @@ public class IFrameToolRenderService implements ToolRenderService
 	{
 
 		final String titleString = Web.escapeHtml(configuration.getTitle());
-		String toolUrl = ServerConfigurationService.getToolUrl() + "/"
-				+ Web.escapeUrl(configuration.getId());
+		//String toolUrl = ServerConfigurationService.getToolUrl() + "/"
+		//		+ Web.escapeUrl(configuration.getId());
+		String toolUrl = serverConfigurationService.getToolUrl() + "/" + Web.escapeUrl(configuration.getId());
 		StoredState ss = portalService.getStoredState();
 		log.debug("Restoring Iframe [" + ss + "]");
 
@@ -114,6 +115,7 @@ public class IFrameToolRenderService implements ToolRenderService
 				.append("\n").append("	marginwidth=\"0\"").append("\n").append(
 						"	marginheight=\"0\"").append("\n").append("	scrolling=\"auto\"")
 				.append(" allowfullscreen=\"allowfullscreen\"")
+				.append(" allow=\"").append(String.join(";", serverConfigurationService.getStrings("browser.feature.allow"))).append("\"")
 				.append("\n").append("	src=\"").append(toolUrl);
 
 				boolean isFirstParam = (toolUrl.indexOf('?') >=0 ? false : true);

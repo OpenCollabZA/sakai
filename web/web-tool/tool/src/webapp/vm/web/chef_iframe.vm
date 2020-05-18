@@ -78,6 +78,7 @@
 			marginwidth="0"
 			marginheight="0"
 			scrolling="auto"
+			allow="$!browser-feature-allow"
 			 #if(!$TargetPageUrl)	
 				src="$!validator.escapeHtml($url)"	
   			 #end
