@@ -3457,7 +3457,9 @@ public class ShowPageProducer implements ViewComponentProducer, DefaultView, Nav
 
 				UIOutput.make(tofill, "startupHelp")
 				    .decorate(new UIFreeAttributeDecorator("src", helpUrl))
-				    .decorate(new UIFreeAttributeDecorator("id", "iframe"));
+				  //  .decorate(new UIFreeAttributeDecorator("id", "iframe"));
+						.decorate(new UIFreeAttributeDecorator("id", "iframe"))
+						.decorate(new UIFreeAttributeDecorator("allow", String.join(";", ServerConfigurationService.getStrings("browser.feature.allow"))));
 				if (!iframeJavascriptDone) {
 				    UIOutput.make(tofill, "iframeJavascript");
 				    iframeJavascriptDone = true;
