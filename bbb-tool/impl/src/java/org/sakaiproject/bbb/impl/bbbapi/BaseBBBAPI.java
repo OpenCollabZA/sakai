@@ -327,7 +327,7 @@ public class BaseBBBAPI implements BBBAPI {
                 for (int page = 1; page <= pages; ++page) {
                     fromIndex = (page - 1) * 25;
                     toIndex = page * 25;
-                    if (toIndex > meetingIDs.size())mysq {
+                    if (toIndex > meetingIDs.size()) {
                         toIndex = meetingIDs.size();
                     }
                     List subMeetingIDs = meetingIDs.subList(fromIndex, toIndex);
