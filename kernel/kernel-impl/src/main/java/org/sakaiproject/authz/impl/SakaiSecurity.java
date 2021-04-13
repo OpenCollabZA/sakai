@@ -822,6 +822,7 @@ public abstract class SakaiSecurity implements SecurityService, Observer
 		// get the users who can unlock in these realms
 		List<String> ids = new Vector<String>();
 		ids.addAll(authzGroupService().getUsersIsAllowed(lock, realms));
+		ids.removeAll(Collections.singleton(null));
 
 		// convert the set of Users into a sorted list of users
 		List<User> users = userDirectoryService().getUsers(ids);

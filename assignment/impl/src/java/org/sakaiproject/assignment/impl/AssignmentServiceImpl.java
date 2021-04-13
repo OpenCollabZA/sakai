@@ -1548,8 +1548,9 @@ public class AssignmentServiceImpl implements AssignmentService, EntityTransferr
             if (assignment.getTypeOfSubmission() == Assignment.SubmissionType.NON_ELECTRONIC_ASSIGNMENT_SUBMISSION) {
                 isNonElectronic = true;
             }
+
             List<User> allowAddSubmissionUsers = allowAddSubmissionUsers(assignmentReference);
-            System.out.println("pot allowAddUsers: " + allowAddSubmissionUsers);
+            System.out.println("post allowAddUsers: " + allowAddSubmissionUsers);
             // SAK-28055 need to take away those users who have the permissions defined in sakai.properties
             String resourceString = AssignmentReferenceReckoner.reckoner().context(assignment.getContext()).reckon().getReference();
             String[] permissions = serverConfigurationService.getStrings("assignment.submitter.remove.permission");
