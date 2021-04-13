@@ -1371,25 +1371,31 @@ public class AssignmentServiceImpl implements AssignmentService, EntityTransferr
     @Transactional
     public AssignmentSubmission getSubmission(String assignmentId, String submitterId) throws PermissionException {
 
-        if (!StringUtils.isAnyBlank(assignmentId, submitterId)) {
-            // normal submission lookup where submitterId is for a user
-            AssignmentSubmission submission = assignmentRepository.findSubmissionForUser(assignmentId, submitterId);
-            if (submission == null) {
-                // if not found submitterId could be a group id
-                submission = assignmentRepository.findSubmissionForGroup(assignmentId, submitterId);
-            }
-
-            if (submission != null) {
-                String reference = AssignmentReferenceReckoner.reckoner().submission(submission).reckon().getReference();
-                if (allowGetSubmission(reference)) {
-                    return submission;
-                } else {
-                    throw new PermissionException(sessionManager.getCurrentSessionUserId(), SECURE_ACCESS_ASSIGNMENT_SUBMISSION, reference);
+        try {
+            if (!StringUtils.isAnyBlank(assignmentId, submitterId)) {
+                // normal submission lookup where submitterId is for a user
+                AssignmentSubmission submission = assignmentRepository.findSubmissionForUser(assignmentId, submitterId);
+                if (submission == null) {
+                    // if not found submitterId could be a group id
+                    submission = assignmentRepository.findSubmissionForGroup(assignmentId, submitterId);
                 }
-            } else {
-                // submission not found looked for a user submission and group submission
-                log.debug("No submission found for user {} in assignment {}", submitterId, assignmentId);
+
+                if (submission != null) {
+                    String reference = AssignmentReferenceReckoner.reckoner().submission(submission).reckon().getReference();
+                    if (allowGetSubmission(reference)) {
+                        return submission;
+                    } else {
+                        throw new PermissionException(sessionManager.getCurrentSessionUserId(), SECURE_ACCESS_ASSIGNMENT_SUBMISSION, reference);
+                    }
+                } else {
+                    // submission not found looked for a user submission and group submission
+                    log.debug("No submission found for user {} in assignment {}", submitterId, assignmentId);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            log.error("Caught Exception in getSubmmision: " + ex);
         }
         return null;
     }
