@@ -1371,31 +1371,25 @@ public class AssignmentServiceImpl implements AssignmentService, EntityTransferr
     @Transactional
     public AssignmentSubmission getSubmission(String assignmentId, String submitterId) throws PermissionException {
 
-        try {
-            if (!StringUtils.isAnyBlank(assignmentId, submitterId)) {
-                // normal submission lookup where submitterId is for a user
-                AssignmentSubmission submission = assignmentRepository.findSubmissionForUser(assignmentId, submitterId);
-                if (submission == null) {
-                    // if not found submitterId could be a group id
-                    submission = assignmentRepository.findSubmissionForGroup(assignmentId, submitterId);
-                }
-
-                if (submission != null) {
-                    String reference = AssignmentReferenceReckoner.reckoner().submission(submission).reckon().getReference();
-                    if (allowGetSubmission(reference)) {
-                        return submission;
-                    } else {
-                        throw new PermissionException(sessionManager.getCurrentSessionUserId(), SECURE_ACCESS_ASSIGNMENT_SUBMISSION, reference);
-                    }
-                } else {
-                    // submission not found looked for a user submission and group submission
-                    log.debug("No submission found for user {} in assignment {}", submitterId, assignmentId);
-                }
+        if (!StringUtils.isAnyBlank(assignmentId, submitterId)) {
+            // normal submission lookup where submitterId is for a user
+            AssignmentSubmission submission = assignmentRepository.findSubmissionForUser(assignmentId, submitterId);
+            if (submission == null) {
+                // if not found submitterId could be a group id
+                submission = assignmentRepository.findSubmissionForGroup(assignmentId, submitterId);
             }
-        }
-        catch (Exception ex)
-        {
-            log.error("Caught Exception in getSubmmision: " + ex);
+
+            if (submission != null) {
+                String reference = AssignmentReferenceReckoner.reckoner().submission(submission).reckon().getReference();
+                if (allowGetSubmission(reference)) {
+                    return submission;
+                } else {
+                    throw new PermissionException(sessionManager.getCurrentSessionUserId(), SECURE_ACCESS_ASSIGNMENT_SUBMISSION, reference);
+                }
+            } else {
+                // submission not found looked for a user submission and group submission
+                log.debug("No submission found for user {} in assignment {}", submitterId, assignmentId);
+            }
         }
         return null;
     }
@@ -1545,26 +1539,33 @@ public class AssignmentServiceImpl implements AssignmentService, EntityTransferr
 
     @Override
     public int countSubmissions(String assignmentReference, Boolean graded) {
+        System.out.println("Starting countSubmission");
         String assignmentId = AssignmentReferenceReckoner.reckoner().reference(assignmentReference).reckon().getId();
         try {
             Assignment assignment = getAssignment(assignmentId);
-
+            System.out.println("post - getAssignment");
             boolean isNonElectronic = false;
             if (assignment.getTypeOfSubmission() == Assignment.SubmissionType.NON_ELECTRONIC_ASSIGNMENT_SUBMISSION) {
                 isNonElectronic = true;
             }
             List<User> allowAddSubmissionUsers = allowAddSubmissionUsers(assignmentReference);
+            System.out.println("pot allowAddUsers: " + allowAddSubmissionUsers);
             // SAK-28055 need to take away those users who have the permissions defined in sakai.properties
             String resourceString = AssignmentReferenceReckoner.reckoner().context(assignment.getContext()).reckon().getReference();
             String[] permissions = serverConfigurationService.getStrings("assignment.submitter.remove.permission");
+            System.out.println("post -getPermissions: " + permissions);
             if (permissions != null) {
                 for (String permission : permissions) {
                     allowAddSubmissionUsers.removeAll(securityService.unlockUsers(permission, resourceString));
+                    System.out.println("in permission loop: " + permission);
                 }
             } else {
                 allowAddSubmissionUsers.removeAll(securityService.unlockUsers(SECURE_ADD_ASSIGNMENT, resourceString));
             }
+
+
             List<String> userIds = allowAddSubmissionUsers.stream().map(User::getId).collect(Collectors.toList());
+            System.out.println("post -allowAddSubmissionUsers userIds: " + userIds);
             // if the assignment is non-electronic don't include submission date or is user submission
             return (int) assignmentRepository.countAssignmentSubmissions(assignmentId, graded, !isNonElectronic, !isNonElectronic, userIds);
         } catch (Exception e) {
