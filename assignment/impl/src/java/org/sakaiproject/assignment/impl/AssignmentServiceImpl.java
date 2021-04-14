@@ -619,7 +619,12 @@ public class AssignmentServiceImpl implements AssignmentService, EntityTransferr
 
     @Override
     public List<User> allowAddSubmissionUsers(String assignmentReference) {
-        return securityService.unlockUsers(SECURE_ADD_ASSIGNMENT_SUBMISSION, assignmentReference);
+        List<User> tempList = securityService.unlockUsers(SECURE_ADD_ASSIGNMENT_SUBMISSION, assignmentReference);
+        while (tempList.remove(null)) {
+            System.out.println("#### removed a null user from allowAddSubmissionUsers");
+        }
+
+        return tempList;
     }
 
     @Override
